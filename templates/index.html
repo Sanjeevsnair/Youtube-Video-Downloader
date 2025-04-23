@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamSave | YouTube Video Downloader</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Background Effects -->
+    <div class="position-fixed top-0 start-0 w-100 h-100" style="z-index: -1; overflow: hidden;">
+        <div class="position-absolute"
+            style="width: 40%; height: 40%; top: -15%; right: -15%; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.08)); border-radius: 50%;">
+        </div>
+        <div class="position-absolute"
+            style="width: 30%; height: 30%; bottom: -10%; left: -10%; background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(14, 165, 233, 0.08)); border-radius: 50%;">
+        </div>
+    </div>
+
+    <div class="container my-5">
+        <header class="text-center mb-5">
+            <h1>StreamSave</h1>
+            <p class="lead">YouTube Video Downloader</p>
+        </header>
+
+        <div class="url-input-container mb-5">
+            <form method="POST" id="searchForm">
+                <div class="url-input-wrap">
+                    <div class="url-input-icon">
+                        <i class="fab fa-youtube"></i>
+                    </div>
+                    <input type="url" class="url-input" name="url" placeholder="Paste YouTube video URL here" required>
+                    <button class="btn-fetch ms-3" type="submit">
+                        <i class="fas fa-search me-2"></i>Download Video
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger mb-4 rounded-xl">
+            <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+        </div>
+        {% endif %}
+
+        {% if video_info %}
+        <div class="row g-4">
+            <div class="col-lg-5">
+                <!-- In the video-showcase div, add a play button overlay -->
+                <div class="video-showcase">
+                    <img src="{{ thumbnail }}" class="thumbnail-img" alt="Video thumbnail">
+                    <div class="play-button-overlay">
+                        <i class="fas fa-play-circle"></i>
+                    </div>
+                    <div class="video-overlay">
+                        <h2 class="video-title">{{ title }}</h2>
+                        <div class="video-meta">
+                            <div class="video-meta-item">
+                                <i class="fas fa-user"></i>
+                                <span>{{ video_info.uploader }}</span>
+                            </div>
+                            <div class="video-meta-item">
+                                <i class="fas fa-eye"></i>
+                                <span>{{ video_info.view_count }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="video-badge">
+                        <i class="fas fa-clock"></i>
+                        <span>{{ video_info.duration }}</span>
+                    </div>
+                </div>
+
+                <!-- Add a modal for the embedded YouTube player -->
+                <div class="modal fade" id="videoPlayerModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">{{ title }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body p-0">
+                                <div id="youtube-player-container"
+                                    style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+                                    <iframe id="youtube-player-iframe"
+                                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                                        frameborder="0" allowfullscreen></iframe>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                <div class="glass-card">
+                    <div class="format-type-tabs">
+                        <button class="format-tab active" data-tab="video">
+                            <i class="fas fa-video me-2"></i>Video
+                            <span class="format-badge-count">{{ video_info.video_formats|length }}</span>
+                        </button>
+                        <button class="format-tab" data-tab="audio">
+                            <i class="fas fa-music me-2"></i>Audio
+                            <span class="format-badge-count">{{ video_info.audio_formats|length }}</span>
+                        </button>
+                    </div>
+
+                    <div class="tab-content">
+                        <div class="tab-pane active" id="video-formats">
+                            <div class="format-cards">
+                                {% for format in video_info.video_formats %}
+                                <div class="format-card">
+                                    <div class="format-card-header">
+                                        <div class="format-icon format-icon-video">
+                                            <i class="fas fa-video"></i>
+                                        </div>
+                                        <div>
+                                            <div class="format-name">{{ format.ext.upper() }}</div>
+                                            <div class="format-info">
+                                                {% if not format.combined %}
+                                                <span>Video</span>
+                                                {% else %}
+                                                <span>Video with Audio</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="format-quality">
+                                        <i class="fas fa-film me-1"></i>
+                                        {{ format.resolution }}
+                                    </div>
+
+                                    <div class="format-metrics">
+                                        {% if format.filesize %}
+                                        <div class="format-metric">
+                                            <i class="fas fa-weight-hanging"></i>
+                                            <span>{{ (format.filesize / (1024 * 1024)) | round(2) }} MB</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <button class="btn-download download-btn" data-type="video"
+                                        data-format="{{ format.format_id }}">
+                                        <i class="fas fa-download"></i>
+                                        <span>Download</span>
+                                    </button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="tab-pane" id="audio-formats" style="display: none;">
+                            <div class="format-cards">
+                                {% for format in video_info.audio_formats %}
+                                <div class="format-card">
+                                    <div class="format-card-header">
+                                        <div class="format-icon format-icon-audio">
+                                            <i class="fas fa-music"></i>
+                                        </div>
+                                        <div>
+                                            <div class="format-name">MP3</div>
+                                            <div class="format-info">Audio Only</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="format-quality">
+                                        <i class="fas fa-volume-up me-1"></i>
+                                        {{ format.note }}
+                                    </div>
+
+                                    <div class="format-metrics">
+                                        {% if format.filesize %}
+                                        <div class="format-metric">
+                                            <i class="fas fa-weight-hanging"></i>
+                                            <span>{{ (format.filesize / (1024 * 1024)) | round(2) }} MB</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <button class="btn-download download-btn" data-type="audio"
+                                        data-format="{{ format.format_id }}">
+                                        <i class="fas fa-download"></i>
+                                        <span>Download</span>
+                                    </button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <input type="hidden" id="videoUrl" value="{{ url }}">
+        {% else %}
+        <!-- Feature Cards -->
+        <div class="row g-4 mt-5">
+            <div class="col-md-4">
+                <div class="feature-card hover-lift">
+                    <div class="feature-icon feature-icon-1">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3 class="feature-title">Fast & Simple</h3>
+                    <p class="feature-text">Download YouTube videos in seconds with our streamlined interface.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card hover-lift">
+                    <div class="feature-icon feature-icon-2">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3 class="feature-title">High Quality</h3>
+                    <p class="feature-text">Choose from multiple quality options for both video and audio.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card hover-lift">
+                    <div class="feature-icon feature-icon-3">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 class="feature-title">Free & Secure</h3>
+                    <p class="feature-text">No registration required. Free to use with no hidden fees.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Download Modal -->
+    <div class="modal fade" id="downloadModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-cloud-download-alt me-2"></i>Download in Progress
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <p class="text-center mb-3" id="download-status">downloading Your Video...</p>
+
+                    <!-- Progress bar container -->
+                    <div class="download-progress-container mb-3">
+                        <div class="download-progress mb-2">
+                            <div class="download-progress-bar gradient-background" style="width: 0%">
+                                <span class="progress-text">0%</span>
+                            </div>
+                        </div>
+                        <div class="download-details text-center">
+                            <span id="progress-percentage">0%</span> of <span id="file-size">0 MiB</span>
+                            at <span id="download-speed">0 KiB/s</span> •
+                            ETA: <span id="download-eta">00:00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-5">
+        <div class="container">
+            
+            <p>© 2025 StreamSave | YouTube Video Downloader</p>
+            <p class="small">For personal use only. Please respect copyright and terms of service.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const downloadButtons = document.querySelectorAll('.download-btn');
+            const videoUrl = document.getElementById('videoUrl')?.value;
+            const downloadModal = new bootstrap.Modal(document.getElementById('downloadModal'));
+
+            // Tab switching functionality
+            const formatTabs = document.querySelectorAll('.format-tab');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+
+            formatTabs.forEach(tab => {
+                tab.addEventListener('click', function () {
+                    // Remove active class from all tabs
+                    formatTabs.forEach(t => t.classList.remove('active'));
+
+                    // Add active class to clicked tab
+                    this.classList.add('active');
+
+                    // Hide all tab panes
+                    tabPanes.forEach(pane => pane.style.display = 'none');
+
+                    // Show the selected tab pane
+                    const tabName = this.getAttribute('data-tab');
+                    document.getElementById(tabName + '-formats').style.display = 'block';
+                });
+            });
+
+            downloadButtons.forEach(button => {
+                button.addEventListener('click', async function () {
+                    if (!videoUrl) return;
+
+                    const formatId = this.getAttribute('data-format');
+                    const downloadType = this.getAttribute('data-type');
+
+                    // Show download modal
+                    downloadModal.show();
+
+                    try {
+                        // Reset UI elements
+                        const progressBar = document.querySelector('.download-progress-bar');
+                        const progressText = document.querySelector('.progress-text');
+                        const statusText = document.getElementById('download-status');
+                        const progressPercentage = document.getElementById('progress-percentage');
+                        const fileSize = document.getElementById('file-size');
+                        const downloadSpeed = document.getElementById('download-speed');
+                        const downloadEta = document.getElementById('download-eta');
+                        const spinner = document.querySelector('.spinner-border');
+                        var type = '';
+
+                        if (downloadType == 'audio') {
+                            type = 'Your Audio is being processed. This may take a moment.'
+                        }
+                        else {
+                            type = 'Your video is being processed. This may take a moment....'
+                        }
+
+                        progressBar.style.width = '0%';
+                        progressText.textContent = '0%';
+                        statusText.textContent = type;
+                        progressPercentage.textContent = '0%';
+                        downloadSpeed.textContent = '0 KiB/s';
+                        downloadEta.textContent = '00:00';
+                        spinner.style.display = 'block';
+
+
+
+                        // Start download
+                        const response = await fetch('/download', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                url: videoUrl,
+                                format_id: formatId,
+                                type: downloadType
+                            })
+                        });
+
+                        if (!response.ok) throw new Error('Failed to start download');
+
+                        const data = await response.json();
+                        const downloadId = data.download_id;
+
+                        // SSE connection for progress updates - FIXED: moved inside the click handler
+                        // SSE connection for progress updates
+                        const eventSource = new EventSource(`/download-progress/${downloadId}`);
+
+                        eventSource.onmessage = function (event) {
+                            const progressData = JSON.parse(event.data);
+                            console.log('Progress update received:', progressData);
+
+                            // Update progress bar
+                            if (progressData.progress !== undefined) {
+                                // Make sure progress is a number 
+                                const progressValue = typeof progressData.progress === 'string'
+                                    ? parseFloat(progressData.progress.replace('%', ''))
+                                    : progressData.progress;
+
+                                // Round to whole number and constrain between 0-100
+                                const roundedValue = Math.min(100, Math.max(0, Math.round(progressValue)));
+
+                                // Update UI elements
+                                progressBar.style.width = `${roundedValue}%`;
+                                progressText.textContent = `${roundedValue}%`;
+                                progressPercentage.textContent = `${roundedValue}%`;
+                            }
+
+                            // Update status and details
+                            if (progressData.status) {
+                                if (progressData.status === 'downloading') {
+                                    statusText.textContent = 'Processing Your Video...';
+                                    if (progressData.speed) downloadSpeed.textContent = progressData.speed;
+                                    if (progressData.eta) downloadEta.textContent = progressData.eta;
+                                    if (progressData.filesize) fileSize.textContent = progressData.filesize;
+                                }
+                                else if (progressData.status === 'processing') {
+                                    statusText.textContent = 'Processing Your Video...';
+                                    progressBar.style.width = '100%';
+                                    progressText.textContent = '100%';
+                                    progressPercentage.textContent = '100%';
+                                    downloadSpeed.textContent = '0 KiB/s';
+                                    downloadEta.textContent = 'Almost done';
+                                }
+                                else if (progressData.status === 'complete') {
+                                    statusText.textContent = 'Processing complete!';
+                                    progressBar.style.width = '100%';
+                                    progressText.textContent = '100%';
+                                    progressPercentage.textContent = '100%';
+                                    spinner.style.display = 'none';
+                                    eventSource.close();
+
+                                    setTimeout(() => {
+                                        const downloadLink = document.createElement('a');
+                                        downloadLink.href = `/get-file/${downloadId}`;
+                                        downloadLink.download = progressData.filename || 'download';
+                                        document.body.appendChild(downloadLink);
+                                        downloadLink.click();
+                                        document.body.removeChild(downloadLink);
+                                        downloadModal.hide();
+                                    }, 500);
+                                }
+                                else if (progressData.status === 'error') {
+                                    statusText.textContent = `Error: ${progressData.error || 'Download failed'}`;
+                                    spinner.style.display = 'none';
+                                    progressBar.classList.add('bg-danger');
+                                    eventSource.close();
+                                }
+                            }
+                        };
+
+                        eventSource.onerror = function (error) {
+                            console.error('EventSource error:', error);
+                            statusText.textContent = 'Connection error. Please try again.';
+                            spinner.style.display = 'none';
+                            progressBar.classList.add('bg-danger');
+                            eventSource.close();
+                        };
+
+                    } catch (error) {
+                        console.error('Download error:', error);
+                        const statusText = document.getElementById('download-status');
+                        if (statusText) {
+                            statusText.textContent = 'An error occurred. Please try again.';
+                        }
+                        const progressBar = document.querySelector('.download-progress-bar');
+                        if (progressBar) {
+                            progressBar.classList.add('bg-danger');
+                        }
+                        const spinner = document.querySelector('.spinner-border');
+                        if (spinner) {
+                            spinner.style.display = 'none';
+                        }
+                    }
+                });
+            });
+
+            const playButtonOverlay = document.querySelector('.play-button-overlay');
+            const videoPlayerModal = new bootstrap.Modal(document.getElementById('videoPlayerModal'));
+            const youtubeIframe = document.getElementById('youtube-player-iframe');
+
+            if (playButtonOverlay && youtubeIframe) {
+                playButtonOverlay.addEventListener('click', function () {
+                    // Extract video ID from URL
+                    const videoUrl = document.getElementById('videoUrl').value;
+                    const videoId = extractVideoId(videoUrl);
+
+                    if (videoId) {
+                        // Set the iframe src with the video ID
+                        youtubeIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+
+                        // Show the modal
+                        videoPlayerModal.show();
+                    }
+                });
+
+                // Reset iframe when modal is closed to stop video
+                document.getElementById('videoPlayerModal').addEventListener('hidden.bs.modal', function () {
+                    youtubeIframe.src = '';
+                });
+            }
+
+            // Function to extract YouTube video ID from various URL formats
+            function extractVideoId(url) {
+                if (!url) return null;
+
+                // Regular expression to extract YouTube video ID
+                const regExp = /^.*(youtu.be\/|v\/|e\/|u\/\w+\/|embed\/|v=)([^#\&\?]*).*/;
+                const match = url.match(regExp);
+
+                return (match && match[2].length === 11) ? match[2] : null;
+            }
+
+            // Form submission animation
+            const searchForm = document.getElementById('searchForm');
+            if (searchForm) {
+                searchForm.addEventListener('submit', function () {
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        // Change button text and add loading indicator
+                        const originalText = submitBtn.innerHTML;
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+                        submitBtn.disabled = true;
+
+                        // Re-enable after form submission (in case of error)
+                        setTimeout(() => {
+                            submitBtn.innerHTML = originalText;
+                            submitBtn.disabled = false;
+                        }, 10000);
+                    }
+                });
+            }
+
+            // Add hover effects for cards
+            const hoverCards = document.querySelectorAll('.hover-lift');
+            hoverCards.forEach(card => {
+                card.addEventListener('mouseenter', function () {
+                    this.style.transform = 'translateY(-5px)';
+                });
+                card.addEventListener('mouseleave', function () {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
