@@ -148,6 +148,37 @@ def refresh_cookies():
     finally:
         driver.quit()
 
+import browser_cookie3
+import tempfile
+
+def get_netscape_cookies():
+    """Get cookies in Netscape format from browser"""
+    # Create temporary cookies file
+    cookie_file = tempfile.NamedTemporaryFile(delete=False, suffix='.txt')
+    
+    # Load cookies from Chrome/Firefox
+    try:
+        cookies = browser_cookie3.chrome(domain_name='youtube.com')
+    except:
+        cookies = browser_cookie3.firefox(domain_name='youtube.com')
+    
+    # Write in Netscape format
+    with open(cookie_file.name, 'w') as f:
+        f.write("# Netscape HTTP Cookie File\n")
+        for cookie in cookies:
+            if 'youtube' in cookie.domain:
+                f.write(
+                    f"{cookie.domain}\t"
+                    f"{'TRUE' if cookie.subdomain else 'FALSE'}\t"
+                    f"{cookie.path}\t"
+                    f"{'TRUE' if cookie.secure else 'FALSE'}\t"
+                    f"{int(cookie.expires or 0)}\t"
+                    f"{cookie.name}\t"
+                    f"{cookie.value}\n"
+                )
+    
+    return cookie_file.name
+
 
 def sanitize_filename(filename):
     """Sanitize the filename to remove invalid characters."""
@@ -192,7 +223,7 @@ def progress_hook(d):
 def get_video_info(url):
     """Fetch available formats for a YouTube video."""
     ydl_opts = {
-        "cookiefile": "cookies.txt",
+        "cookiefile": get_netscape_cookies(),
         "http_headers": {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept-Language": "en-US,en;q=0.9",
@@ -433,7 +464,7 @@ def download():
         "no_warnings": True,
         "progress_hooks": [progress_hook],
         "info_dict": {"_download_id": download_id},
-        "cookiefile": "cookies.txt",
+        "cookiefile": get_netscape_cookies(),
         "http_headers": {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept-Language": "en-US,en;q=0.9",
