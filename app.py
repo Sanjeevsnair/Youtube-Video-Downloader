@@ -133,51 +133,32 @@ from selenium.webdriver.chrome.options import Options
 
 
 def refresh_cookies():
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    
     chrome_options = Options()
     chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
-
     driver = webdriver.Chrome(options=chrome_options)
+    
     try:
         driver.get("https://youtube.com")
         time.sleep(5)  # Wait for login if needed
-        cookies = driver.get_cookies()
+        
+        # Convert cookies to Netscape format
         with open("cookies.txt", "w") as f:
-            json.dump(cookies, f)
+            f.write("# Netscape HTTP Cookie File\n")
+            for cookie in driver.get_cookies():
+                f.write(
+                    f"{cookie['domain']}\t"
+                    f"{'TRUE' if cookie['domain'].startswith('.') else 'FALSE'}\t"
+                    f"{cookie['path']}\t"
+                    f"{'TRUE' if cookie['secure'] else 'FALSE'}\t"
+                    f"{int(cookie['expiry']) if 'expiry' in cookie else '0'}\t"
+                    f"{cookie['name']}\t"
+                    f"{cookie['value']}\n"
+                )
     finally:
         driver.quit()
-
-import browser_cookie3
-import tempfile
-
-def get_netscape_cookies():
-    """Get cookies in Netscape format from browser"""
-    # Create temporary cookies file
-    cookie_file = tempfile.NamedTemporaryFile(delete=False, suffix='.txt')
-    
-    # Load cookies from Chrome/Firefox
-    try:
-        cookies = browser_cookie3.chrome(domain_name='youtube.com')
-    except:
-        cookies = browser_cookie3.firefox(domain_name='youtube.com')
-    
-    # Write in Netscape format
-    with open(cookie_file.name, 'w') as f:
-        f.write("# Netscape HTTP Cookie File\n")
-        for cookie in cookies:
-            if 'youtube' in cookie.domain:
-                f.write(
-                    f"{cookie.domain}\t"
-                    f"{'TRUE' if cookie.subdomain else 'FALSE'}\t"
-                    f"{cookie.path}\t"
-                    f"{'TRUE' if cookie.secure else 'FALSE'}\t"
-                    f"{int(cookie.expires or 0)}\t"
-                    f"{cookie.name}\t"
-                    f"{cookie.value}\n"
-                )
-    
-    return cookie_file.name
 
 
 def sanitize_filename(filename):
@@ -223,7 +204,7 @@ def progress_hook(d):
 def get_video_info(url):
     """Fetch available formats for a YouTube video."""
     ydl_opts = {
-        "cookiefile": get_netscape_cookies(),
+        "cookiefile": "cookies.txt",
         "http_headers": {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept-Language": "en-US,en;q=0.9",
@@ -424,9 +405,13 @@ def index():
 
     return render_template("index.html")
 
+def ensure_cookies():
+    if not os.path.exists("cookies.txt"):
+        refresh_cookies()
 
 @app.route("/download", methods=["POST"])
 def download():
+    ensure_cookies()
     if request.method == "POST":
         data = request.json
         url = data.get("url")
@@ -464,7 +449,7 @@ def download():
         "no_warnings": True,
         "progress_hooks": [progress_hook],
         "info_dict": {"_download_id": download_id},
-        "cookiefile": get_netscape_cookies(),
+        "cookiefile": "cookies.txt",
         "http_headers": {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept-Language": "en-US,en;q=0.9",
