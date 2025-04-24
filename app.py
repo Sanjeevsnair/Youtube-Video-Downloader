@@ -132,17 +132,24 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
 
+import tempfile
+import uuid
+
 def refresh_cookies():
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
-    
     chrome_options = Options()
     chrome_options.add_argument("--headless")
-    driver = webdriver.Chrome(options=chrome_options)
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
     
+    # Create unique user data directory for each session
+    user_data_dir = f"/tmp/chrome_{uuid.uuid4().hex}"
+    chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
+    
+    driver = None
     try:
+        driver = webdriver.Chrome(options=chrome_options)
         driver.get("https://youtube.com")
-        time.sleep(5)  # Wait for login if needed
+        time.sleep(5)  # Wait for login
         
         # Convert cookies to Netscape format
         with open("cookies.txt", "w") as f:
@@ -158,7 +165,11 @@ def refresh_cookies():
                     f"{cookie['value']}\n"
                 )
     finally:
-        driver.quit()
+        if driver:
+            driver.quit()
+        # Clean up temporary directory
+        if os.path.exists(user_data_dir):
+            shutil.rmtree(user_data_dir, ignore_errors=True)
 
 
 def sanitize_filename(filename):
