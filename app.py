@@ -1,4 +1,5 @@
 import os
+import shutil
 from flask import (
     Flask,
     render_template,
@@ -141,7 +142,7 @@ def refresh_cookies():
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     
-    # Create unique user data directory for each session
+    # Create unique user data directory
     user_data_dir = f"/tmp/chrome_{uuid.uuid4().hex}"
     chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
     
@@ -169,7 +170,7 @@ def refresh_cookies():
             driver.quit()
         # Clean up temporary directory
         if os.path.exists(user_data_dir):
-            shutil.rmtree(user_data_dir, ignore_errors=True)
+            shutil.rmtree(user_data_dir, ignore_errors=True)  # Now works
 
 
 def sanitize_filename(filename):
