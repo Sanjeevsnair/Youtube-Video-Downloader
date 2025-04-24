@@ -13,6 +13,7 @@
 </head>
 
 <body>
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
     <!-- Background Effects -->
     <div class="position-fixed top-0 start-0 w-100 h-100" style="z-index: -1; overflow: hidden;">
         <div class="position-absolute"
@@ -271,7 +272,7 @@
 
     <footer class="footer mt-5">
         <div class="container">
-            
+
             <p>© 2025 StreamSave | YouTube Video Downloader</p>
             <p class="small">For personal use only. Please respect copyright and terms of service.</p>
         </div>
@@ -280,9 +281,14 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // Elements and variables
             const downloadButtons = document.querySelectorAll('.download-btn');
             const videoUrl = document.getElementById('videoUrl')?.value;
             const downloadModal = new bootstrap.Modal(document.getElementById('downloadModal'));
+            const videoPlayerModal = new bootstrap.Modal(document.getElementById('videoPlayerModal'));
+            const youtubeIframe = document.getElementById('youtube-player-iframe');
+            let currentEventSource = null;
+            let downloadTimeout = null;
 
             // Tab switching functionality
             const formatTabs = document.querySelectorAll('.format-tab');
@@ -290,223 +296,93 @@
 
             formatTabs.forEach(tab => {
                 tab.addEventListener('click', function () {
-                    // Remove active class from all tabs
                     formatTabs.forEach(t => t.classList.remove('active'));
-
-                    // Add active class to clicked tab
                     this.classList.add('active');
 
-                    // Hide all tab panes
                     tabPanes.forEach(pane => pane.style.display = 'none');
-
-                    // Show the selected tab pane
                     const tabName = this.getAttribute('data-tab');
                     document.getElementById(tabName + '-formats').style.display = 'block';
                 });
             });
 
+            // Download button handlers with improved error handling
             downloadButtons.forEach(button => {
                 button.addEventListener('click', async function () {
-                    if (!videoUrl) return;
+                    if (!videoUrl) {
+                        showToast('No video URL found', 'error');
+                        return;
+                    }
 
                     const formatId = this.getAttribute('data-format');
                     const downloadType = this.getAttribute('data-type');
 
-                    // Show download modal
-                    downloadModal.show();
+                    // Show loading state on button
+                    const originalContent = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    this.disabled = true;
 
                     try {
-                        // Reset UI elements
-                        const progressBar = document.querySelector('.download-progress-bar');
-                        const progressText = document.querySelector('.progress-text');
-                        const statusText = document.getElementById('download-status');
-                        const progressPercentage = document.getElementById('progress-percentage');
-                        const fileSize = document.getElementById('file-size');
-                        const downloadSpeed = document.getElementById('download-speed');
-                        const downloadEta = document.getElementById('download-eta');
-                        const spinner = document.querySelector('.spinner-border');
-                        var type = '';
+                        // Reset modal state
+                        resetDownloadModal();
 
-                        if (downloadType == 'audio') {
-                            type = 'Your Audio is being processed. This may take a moment.'
-                        }
-                        else {
-                            type = 'Your video is being processed. This may take a moment....'
-                        }
+                        // Show download modal
+                        downloadModal.show();
 
-                        progressBar.style.width = '0%';
-                        progressText.textContent = '0%';
-                        statusText.textContent = type;
-                        progressPercentage.textContent = '0%';
-                        downloadSpeed.textContent = '0 KiB/s';
-                        downloadEta.textContent = '00:00';
-                        spinner.style.display = 'block';
-
-
-
-                        // Start download
-                        const response = await fetch('/download', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                url: videoUrl,
-                                format_id: formatId,
-                                type: downloadType
-                            })
-                        });
-
-                        if (!response.ok) throw new Error('Failed to start download');
-
-                        const data = await response.json();
-                        const downloadId = data.download_id;
-
-                        // SSE connection for progress updates - FIXED: moved inside the click handler
-                        // SSE connection for progress updates
-                        const eventSource = new EventSource(`/download-progress/${downloadId}`);
-
-                        eventSource.onmessage = function (event) {
-                            const progressData = JSON.parse(event.data);
-                            console.log('Progress update received:', progressData);
-
-                            // Update progress bar
-                            if (progressData.progress !== undefined) {
-                                // Make sure progress is a number 
-                                const progressValue = typeof progressData.progress === 'string'
-                                    ? parseFloat(progressData.progress.replace('%', ''))
-                                    : progressData.progress;
-
-                                // Round to whole number and constrain between 0-100
-                                const roundedValue = Math.min(100, Math.max(0, Math.round(progressValue)));
-
-                                // Update UI elements
-                                progressBar.style.width = `${roundedValue}%`;
-                                progressText.textContent = `${roundedValue}%`;
-                                progressPercentage.textContent = `${roundedValue}%`;
-                            }
-
-                            // Update status and details
-                            if (progressData.status) {
-                                if (progressData.status === 'downloading') {
-                                    statusText.textContent = 'Processing Your Video...';
-                                    if (progressData.speed) downloadSpeed.textContent = progressData.speed;
-                                    if (progressData.eta) downloadEta.textContent = progressData.eta;
-                                    if (progressData.filesize) fileSize.textContent = progressData.filesize;
-                                }
-                                else if (progressData.status === 'processing') {
-                                    statusText.textContent = 'Processing Your Video...';
-                                    progressBar.style.width = '100%';
-                                    progressText.textContent = '100%';
-                                    progressPercentage.textContent = '100%';
-                                    downloadSpeed.textContent = '0 KiB/s';
-                                    downloadEta.textContent = 'Almost done';
-                                }
-                                else if (progressData.status === 'complete') {
-                                    statusText.textContent = 'Processing complete!';
-                                    progressBar.style.width = '100%';
-                                    progressText.textContent = '100%';
-                                    progressPercentage.textContent = '100%';
-                                    spinner.style.display = 'none';
-                                    eventSource.close();
-
-                                    setTimeout(() => {
-                                        const downloadLink = document.createElement('a');
-                                        downloadLink.href = `/get-file/${downloadId}`;
-                                        downloadLink.download = progressData.filename || 'download';
-                                        document.body.appendChild(downloadLink);
-                                        downloadLink.click();
-                                        document.body.removeChild(downloadLink);
-                                        downloadModal.hide();
-                                    }, 500);
-                                }
-                                else if (progressData.status === 'error') {
-                                    statusText.textContent = `Error: ${progressData.error || 'Download failed'}`;
-                                    spinner.style.display = 'none';
-                                    progressBar.classList.add('bg-danger');
-                                    eventSource.close();
-                                }
-                            }
-                        };
-
-                        eventSource.onerror = function (error) {
-                            console.error('EventSource error:', error);
-                            statusText.textContent = 'Connection error. Please try again.';
-                            spinner.style.display = 'none';
-                            progressBar.classList.add('bg-danger');
-                            eventSource.close();
-                        };
-
+                        // Start download process
+                        await startDownloadProcess(videoUrl, formatId, downloadType);
                     } catch (error) {
                         console.error('Download error:', error);
-                        const statusText = document.getElementById('download-status');
-                        if (statusText) {
-                            statusText.textContent = 'An error occurred. Please try again.';
-                        }
-                        const progressBar = document.querySelector('.download-progress-bar');
-                        if (progressBar) {
-                            progressBar.classList.add('bg-danger');
-                        }
-                        const spinner = document.querySelector('.spinner-border');
-                        if (spinner) {
-                            spinner.style.display = 'none';
-                        }
+                        updateDownloadStatus(`Error: ${error.message || 'Download failed'}`, true);
+                        showToast('Download failed. Please try again.', 'error');
+                    } finally {
+                        // Restore button state
+                        this.innerHTML = originalContent;
+                        this.disabled = false;
                     }
                 });
             });
 
+            // Video player modal functionality
             const playButtonOverlay = document.querySelector('.play-button-overlay');
-            const videoPlayerModal = new bootstrap.Modal(document.getElementById('videoPlayerModal'));
-            const youtubeIframe = document.getElementById('youtube-player-iframe');
-
             if (playButtonOverlay && youtubeIframe) {
                 playButtonOverlay.addEventListener('click', function () {
-                    // Extract video ID from URL
-                    const videoUrl = document.getElementById('videoUrl').value;
                     const videoId = extractVideoId(videoUrl);
-
                     if (videoId) {
-                        // Set the iframe src with the video ID
-                        youtubeIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-
-                        // Show the modal
+                        youtubeIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
                         videoPlayerModal.show();
                     }
                 });
 
-                // Reset iframe when modal is closed to stop video
-                document.getElementById('videoPlayerModal').addEventListener('hidden.bs.modal', function () {
+                videoPlayerModal._element.addEventListener('hidden.bs.modal', function () {
+                    // Pause video when modal is closed
                     youtubeIframe.src = '';
                 });
             }
 
-            // Function to extract YouTube video ID from various URL formats
-            function extractVideoId(url) {
-                if (!url) return null;
-
-                // Regular expression to extract YouTube video ID
-                const regExp = /^.*(youtu.be\/|v\/|e\/|u\/\w+\/|embed\/|v=)([^#\&\?]*).*/;
-                const match = url.match(regExp);
-
-                return (match && match[2].length === 11) ? match[2] : null;
-            }
-
-            // Form submission animation
+            // Form submission handler with improved UX
             const searchForm = document.getElementById('searchForm');
             if (searchForm) {
-                searchForm.addEventListener('submit', function () {
+                searchForm.addEventListener('submit', function (e) {
+                    const urlInput = this.querySelector('input[name="url"]');
                     const submitBtn = this.querySelector('button[type="submit"]');
+
+                    if (!urlInput.value.trim()) {
+                        e.preventDefault();
+                        urlInput.focus();
+                        showToast('Please enter a YouTube URL', 'error');
+                        return;
+                    }
+
                     if (submitBtn) {
-                        // Change button text and add loading indicator
                         const originalText = submitBtn.innerHTML;
                         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
                         submitBtn.disabled = true;
 
-                        // Re-enable after form submission (in case of error)
-                        setTimeout(() => {
+                        // Re-enable button if form submission takes too long
+                        downloadTimeout = setTimeout(() => {
                             submitBtn.innerHTML = originalText;
                             submitBtn.disabled = false;
-                        }, 10000);
+                        }, 15000);
                     }
                 });
             }
@@ -516,11 +392,278 @@
             hoverCards.forEach(card => {
                 card.addEventListener('mouseenter', function () {
                     this.style.transform = 'translateY(-5px)';
+                    this.style.transition = 'transform 0.2s ease';
                 });
                 card.addEventListener('mouseleave', function () {
                     this.style.transform = 'translateY(0)';
                 });
             });
+
+            // Helper functions with improved implementations
+            function extractVideoId(url) {
+                if (!url) return null;
+                const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+                const match = url.match(regExp);
+                return (match && match[2].length === 11) ? match[2] : null;
+            }
+
+            function resetDownloadModal() {
+                clearTimeout(downloadTimeout);
+
+                const progressBar = document.querySelector('.download-progress-bar');
+                const progressText = document.querySelector('.progress-text');
+                const statusText = document.getElementById('download-status');
+                const progressPercentage = document.getElementById('progress-percentage');
+                const fileSize = document.getElementById('file-size');
+                const downloadSpeed = document.getElementById('download-speed');
+                const downloadEta = document.getElementById('download-eta');
+                const spinner = document.querySelector('.spinner-border');
+
+                // Close any existing SSE connection
+                if (currentEventSource) {
+                    currentEventSource.close();
+                    currentEventSource = null;
+                }
+
+                // Reset UI elements
+                progressBar.style.width = '0%';
+                progressBar.classList.remove('bg-danger', 'bg-success');
+                progressText.textContent = '0%';
+                statusText.textContent = 'Preparing download...';
+                progressPercentage.textContent = '0%';
+                fileSize.textContent = '0 MiB';
+                downloadSpeed.textContent = '0 KiB/s';
+                downloadEta.textContent = '00:00';
+                spinner.style.display = 'block';
+            }
+
+            async function startDownloadProcess(url, formatId, downloadType) {
+                try {
+                    const response = await fetch('/download', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            url: url,
+                            format_id: formatId,
+                            type: downloadType
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Failed to start download');
+                    }
+
+                    if (!data.download_id) {
+                        throw new Error('Invalid response from server');
+                    }
+
+                    setupProgressTracking(data.download_id, downloadType);
+
+                } catch (error) {
+                    console.error('Download start error:', error);
+                    updateDownloadStatus(error.message, true);
+
+                    // Specific handling for API merge errors
+                    if (error.message.includes('merge') || error.message.includes('API')) {
+                        showToast('Video processing failed. Try a different format.', 'error');
+                    } else {
+                        showToast('Download failed. Please try again.', 'error');
+                    }
+                    throw error;
+                }
+            }
+
+            function setupProgressTracking(downloadId, downloadType) {
+                const progressBar = document.querySelector('.download-progress-bar');
+                const progressText = document.querySelector('.progress-text');
+                const statusText = document.getElementById('download-status');
+                const progressPercentage = document.getElementById('progress-percentage');
+                const fileSize = document.getElementById('file-size');
+                const downloadSpeed = document.getElementById('download-speed');
+                const downloadEta = document.getElementById('download-eta');
+                const spinner = document.querySelector('.spinner-border');
+
+                // Close any existing connection
+                if (currentEventSource) {
+                    currentEventSource.close();
+                }
+
+                currentEventSource = new EventSource(`/download-progress/${downloadId}`);
+
+                currentEventSource.onmessage = function (event) {
+                    try {
+                        const progressData = JSON.parse(event.data);
+                        console.debug('Progress update:', progressData);
+
+                        // Update progress
+                        if (progressData.progress !== undefined) {
+                            const progressValue = Math.min(100, Math.max(0,
+                                typeof progressData.progress === 'string' ?
+                                    parseFloat(progressData.progress.replace('%', '')) :
+                                    progressData.progress
+                            ));
+
+                            const roundedValue = Math.round(progressValue);
+                            progressBar.style.width = `${roundedValue}%`;
+                            progressText.textContent = `${roundedValue}%`;
+                            progressPercentage.textContent = `${roundedValue}%`;
+                        }
+
+                        // Update status
+                        if (progressData.status) {
+                            switch (progressData.status) {
+                                case 'downloading':
+                                    statusText.textContent = downloadType === 'audio' ?
+                                        'Downloading audio...' : 'Downloading video...';
+                                    if (progressData.speed) downloadSpeed.textContent = progressData.speed;
+                                    if (progressData.eta) downloadEta.textContent = progressData.eta;
+                                    if (progressData.filesize) fileSize.textContent = progressData.filesize;
+                                    break;
+
+                                case 'processing':
+                                    statusText.textContent = downloadType === 'audio' ?
+                                        'Converting to MP3...' : 'Processing video...';
+                                    progressBar.style.width = '100%';
+                                    progressText.textContent = '100%';
+                                    progressPercentage.textContent = '100%';
+                                    downloadSpeed.textContent = 'Processing...';
+                                    downloadEta.textContent = 'Almost done';
+                                    break;
+
+                                case 'complete':
+                                    statusText.textContent = 'Download complete!';
+                                    progressBar.classList.add('bg-success');
+                                    spinner.style.display = 'none';
+                                    clearTimeout(downloadTimeout);
+
+                                    // Automatically trigger download after short delay
+                                    setTimeout(() => {
+                                        if (progressData.filename) {
+                                            window.location.href = `/get-file/${downloadId}`;
+                                        }
+                                        downloadModal.hide();
+                                    }, 1000);
+
+                                    if (currentEventSource) {
+                                        currentEventSource.close();
+                                    }
+                                    break;
+
+                                case 'error':
+                                    updateDownloadStatus(`Error: ${progressData.error || 'Download failed'}`, true);
+                                    clearTimeout(downloadTimeout);
+                                    break;
+                            }
+                        }
+                    } catch (parseError) {
+                        console.error('Error parsing progress data:', parseError);
+                    }
+                };
+
+                currentEventSource.onerror = function () {
+                    updateDownloadStatus('Connection interrupted. Trying to reconnect...', false);
+                    // Attempt reconnect after delay
+                    setTimeout(() => {
+                        if (currentEventSource) {
+                            currentEventSource.close();
+                            setupProgressTracking(downloadId, downloadType);
+                        }
+                    }, 3000);
+                };
+            }
+
+            function updateDownloadStatus(message, isError = false) {
+                const statusText = document.getElementById('download-status');
+                const progressBar = document.querySelector('.download-progress-bar');
+                const spinner = document.querySelector('.spinner-border');
+
+                statusText.textContent = message;
+                spinner.style.display = 'none';
+
+                if (isError) {
+                    progressBar.classList.add('bg-danger');
+                    showToast(message, 'error');
+                }
+
+                if (currentEventSource) {
+                    currentEventSource.close();
+                    currentEventSource = null;
+                }
+            }
+
+            // Improved notification system
+            function showToast(message, type = 'info') {
+                const toastContainer = document.createElement('div');
+                toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                toastContainer.style.zIndex = '9999';
+
+                const toast = document.createElement('div');
+                toast.className = `toast show align-items-center text-white bg-${type === 'error' ? 'danger' : 'primary'} border-0`;
+                toast.role = 'alert';
+                toast.setAttribute('aria-live', 'assertive');
+                toast.setAttribute('aria-atomic', 'true');
+
+                const toastBody = document.createElement('div');
+                toastBody.className = 'd-flex align-items-center';
+
+                const icon = document.createElement('i');
+                icon.className = type === 'error' ?
+                    'fas fa-exclamation-circle me-2' :
+                    'fas fa-info-circle me-2';
+
+                const text = document.createElement('div');
+                text.className = 'toast-body';
+                text.textContent = message;
+
+                const closeBtn = document.createElement('button');
+                closeBtn.type = 'button';
+                closeBtn.className = 'btn-close btn-close-white ms-auto me-2';
+                closeBtn.setAttribute('data-bs-dismiss', 'toast');
+                closeBtn.setAttribute('aria-label', 'Close');
+
+                toastBody.appendChild(icon);
+                toastBody.appendChild(text);
+                toastBody.appendChild(closeBtn);
+                toast.appendChild(toastBody);
+                toastContainer.appendChild(toast);
+                document.body.appendChild(toastContainer);
+
+                // Auto-remove after delay
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        toastContainer.remove();
+                    }, 300);
+                }, 5000);
+
+                // Manual close
+                closeBtn.addEventListener('click', () => {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        toastContainer.remove();
+                    }, 300);
+                });
+            }
+
+            // Add CSS for toast notifications
+            const toastStyles = document.createElement('style');
+            toastStyles.textContent = `
+        .toast-container {
+            min-width: 300px;
+        }
+        .toast {
+            transition: opacity 0.3s ease;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+    `;
+            document.head.appendChild(toastStyles);
         });
     </script>
 </body>
