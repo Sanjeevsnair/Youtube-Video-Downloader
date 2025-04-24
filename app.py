@@ -27,42 +27,50 @@ os.makedirs(app.config["DOWNLOAD_FOLDER"], exist_ok=True)
 # In your Flask application
 import requests
 
-app.config['FFMPEG_API_URL'] = "https://ffmpeg-api-re8o.onrender.com"  # Change to your API URL
-app.config['API_AUTH_TOKEN'] = 'abcXyz123_4mK9LpOqRstUvWxYz0123456789abcdef'
+app.config["FFMPEG_API_URL"] = (
+    "https://ffmpeg-api-re8o.onrender.com"  # Change to your API URL
+)
+app.config["API_AUTH_TOKEN"] = "abcXyz123_4mK9LpOqRstUvWxYz0123456789abcdef"
 
 
 def merge_with_ffmpeg_api(video_path, audio_path, output_format="mp4"):
     """Use our FFmpeg API to merge video and audio"""
     try:
-        with open(video_path, 'rb') as vf, open(audio_path, 'rb') as af:
+        with open(video_path, "rb") as vf, open(audio_path, "rb") as af:
             files = {
-                'video_file': ('video.mp4', vf, 'video/mp4'),
-                'audio_file': ('audio.m4a', af, 'audio/mp4')
+                "video_file": ("video.mp4", vf, "video/mp4"),
+                "audio_file": ("audio.m4a", af, "audio/mp4"),
             }
             headers = {
                 "Authorization": f"Bearer {app.config['API_AUTH_TOKEN']}",
-                "Accept": "application/json"
+                "Accept": "application/json",
             }
-            
+
             response = requests.post(
                 f"{app.config['FFMPEG_API_URL']}/merge",
                 files=files,
-                params={'output_format': output_format},
+                params={"output_format": output_format},
                 headers=headers,
-                timeout=300  # 5 minute timeout for large files
+                timeout=300,  # 5 minute timeout for large files
             )
-            
+
             if not response.content:
                 raise Exception("Empty response from FFmpeg API")
-            
+
             if response.status_code == 200:
                 output_filename = f"merged_{uuid.uuid4().hex}.{output_format}"
-                output_path = os.path.join(app.config['DOWNLOAD_FOLDER'], output_filename)
-                with open(output_path, 'wb') as f:
+                output_path = os.path.join(
+                    app.config["DOWNLOAD_FOLDER"], output_filename
+                )
+                with open(output_path, "wb") as f:
                     f.write(response.content)
                 return output_path
-            
-            error_detail = response.json().get('detail', 'Merge failed') if response.headers.get('Content-Type') == 'application/json' else response.text
+
+            error_detail = (
+                response.json().get("detail", "Merge failed")
+                if response.headers.get("Content-Type") == "application/json"
+                else response.text
+            )
             raise Exception(f"API Error: {error_detail}")
 
     except requests.exceptions.RequestException as e:
@@ -70,30 +78,37 @@ def merge_with_ffmpeg_api(video_path, audio_path, output_format="mp4"):
     except Exception as e:
         raise Exception(f"Merge failed: {str(e)}")
 
+
 def convert_to_mp3_api(input_path, bitrate="192k"):
     """Use our FFmpeg API to convert to MP3"""
     try:
-        with open(input_path, 'rb') as f:
+        with open(input_path, "rb") as f:
             headers = {
                 "Authorization": f"Bearer {app.config['API_AUTH_TOKEN']}",
-                "Accept": "application/json"
+                "Accept": "application/json",
             }
             response = requests.post(
                 f"{app.config['FFMPEG_API_URL']}/convert-to-mp3",
-                files={'input_file': ('input', f, 'application/octet-stream')},
-                params={'bitrate': bitrate},
+                files={"input_file": ("input", f, "application/octet-stream")},
+                params={"bitrate": bitrate},
                 headers=headers,
-                timeout=300  # 5 minute timeout
+                timeout=300,  # 5 minute timeout
             )
-            
+
             if response.status_code == 200:
                 output_filename = f"converted_{uuid.uuid4().hex}.mp3"
-                output_path = os.path.join(app.config['DOWNLOAD_FOLDER'], output_filename)
-                with open(output_path, 'wb') as f:
+                output_path = os.path.join(
+                    app.config["DOWNLOAD_FOLDER"], output_filename
+                )
+                with open(output_path, "wb") as f:
                     f.write(response.content)
                 return output_path
-            
-            error_detail = response.json().get('detail', 'Conversion failed') if response.headers.get('Content-Type') == 'application/json' else response.text
+
+            error_detail = (
+                response.json().get("detail", "Conversion failed")
+                if response.headers.get("Content-Type") == "application/json"
+                else response.text
+            )
             raise Exception(f"API Error: {error_detail}")
     except requests.exceptions.RequestException as e:
         raise Exception(f"API Connection Error: {str(e)}")
@@ -160,7 +175,8 @@ def get_video_info(url):
         "quiet": True,
         "no_warnings": True,
         "extract_flat": False,
-        "cookiefile": "cookies.txt",
+        "cookiesfrombrowser": ("chrome",),
+        "cookiefile": "cookies.txt",  # Make sure this path is correct
         "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
     }
 
@@ -377,9 +393,10 @@ def download():
         "no_warnings": True,
         "progress_hooks": [progress_hook],
         "info_dict": {"_download_id": download_id},
-        "cookiefile": "cookies.txt",
+        "cookiefile": "cookies.txt",  # Make sure this path is correct
         "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         "referer": "https://www.youtube.com/",
+        "cookiesfrombrowser": ("chrome",)
     }
 
     # Configure based on download type
@@ -512,11 +529,11 @@ def debug_ffmpeg_api():
         os.unlink(test_file)
 
         return jsonify(
-            {"status": "success", "result": result, "api_url": FFMPEG_API_URL}
+            {"status": "success", "result": result, "api_url": app.config['FFMPEG_API_URL']}
         )
     except Exception as e:
         return (
-            jsonify({"status": "error", "error": str(e), "api_url": FFMPEG_API_URL}),
+            jsonify({"status": "error", "error": str(e), "api_url": app.config['FFMPEG_API_URL']}),
             500,
         )
 
@@ -590,4 +607,4 @@ if __name__ == "__main__":
     # from waitress import serve
     # serve(app, host="0.0.0.0", port=8080)
 
-    app.run(debug=True,host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5000)
