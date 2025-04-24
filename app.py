@@ -1,4 +1,5 @@
 import os
+import random
 import shutil
 from flask import (
     Flask,
@@ -172,6 +173,82 @@ def refresh_cookies():
         if os.path.exists(user_data_dir):
             shutil.rmtree(user_data_dir, ignore_errors=True)  # Now works
 
+def refresh_youtube_cookies():
+    """Generates fresh YouTube cookies in Netscape format"""
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    
+    # Create isolated profile
+    profile_path = f"/tmp/yt_{int(time.time())}"
+    chrome_options.add_argument(f"--user-data-dir={profile_path}")
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    
+    driver = webdriver.Chrome(options=chrome_options)
+    try:
+        # Simulate human-like browsing
+        driver.get("https://accounts.google.com")
+        time.sleep(2)
+        driver.get("https://youtube.com")
+        time.sleep(5)
+        
+        # Save cookies in Netscape format
+        with open("yt_cookies.txt", "w") as f:
+            f.write("# Netscape HTTP Cookie File\n")
+            for cookie in driver.get_cookies():
+                if 'youtube.com' in cookie['domain']:
+                    f.write(
+                        f"{cookie['domain']}\t"
+                        f"{'TRUE' if cookie['domain'].startswith('.') else 'FALSE'}\t"
+                        f"{cookie['path']}\t"
+                        f"{'TRUE' if cookie['secure'] else 'FALSE'}\t"
+                        f"{int(cookie.get('expiry', 0))}\t"
+                        f"{cookie['name']}\t"
+                        f"{cookie['value']}\n"
+                    )
+    finally:
+        driver.quit()
+        shutil.rmtree(profile_path, ignore_errors=True)
+        
+
+def get_ytdl_opts():
+    return {
+        "cookiefile": "yt_cookies.txt",
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+            "X-Forwarded-For": f"203.0.{random.randint(1,255)}.{random.randint(1,255)}"
+        },
+        "extractor_args": {
+            "youtube": {
+                "skip": ["dash", "hls"],
+                "player_client": ["android", "web"]
+            }
+        },
+        "retries": 10,
+        "throttledratelimit": 100,
+        "ignoreerrors": True,
+        "quiet": True
+    }
+    
+def download_video(url):
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        try:
+            with yt_dlp.YoutubeDL(get_ytdl_opts()) as ydl:
+                return ydl.extract_info(url, download=False)
+        except yt_dlp.utils.DownloadError as e:
+            if "Sign in" in str(e):
+                if attempt < max_attempts - 1:
+                    refresh_youtube_cookies()
+                    time.sleep(5 * (attempt + 1))  # Progressive backoff
+                    continue
+                raise Exception("YouTube authentication failed after multiple attempts")
+            raise
+
+if not os.path.exists("cookies.txt"):
+    refresh_youtube_cookies()
 
 def sanitize_filename(filename):
     """Sanitize the filename to remove invalid characters."""
@@ -420,6 +497,24 @@ def index():
 def ensure_cookies():
     if not os.path.exists("cookies.txt"):
         refresh_cookies()
+
+@app.route('/download/<video_id>')
+def download(video_id):
+    try:
+        info = download_video(f"https://youtu.be/{video_id}")
+        return jsonify({
+            "status": "success",
+            "title": info.get('title'),
+            "formats": info.get('formats')
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# Scheduled cookie refresh
+def cookie_maintenance():
+    while True:
+        time.sleep(3600 * 6)  # Refresh every 6 hours
+        refresh_youtube_cookies()
 
 @app.route("/download", methods=["POST"])
 def download():
