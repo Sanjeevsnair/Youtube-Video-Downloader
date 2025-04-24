@@ -175,7 +175,7 @@ def get_video_info(url):
         "quiet": True,
         "no_warnings": True,
         "extract_flat": False,
-        "cookiesfrombrowser": ("chrome",),
+        "cookiesfrombrowser": ("firefox",),
         "cookiefile": "cookies.txt",  # Make sure this path is correct
         "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
     }
@@ -396,7 +396,7 @@ def download():
         "cookiefile": "cookies.txt",  # Make sure this path is correct
         "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         "referer": "https://www.youtube.com/",
-        "cookiesfrombrowser": ("chrome",)
+        "cookiesfrombrowser": ("firefox",)
     }
 
     # Configure based on download type
