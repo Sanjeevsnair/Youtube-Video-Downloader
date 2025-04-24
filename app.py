@@ -128,6 +128,26 @@ download_progress = defaultdict(
 )
 download_lock = threading.Lock()
 
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+
+
+def refresh_cookies():
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+
+    driver = webdriver.Chrome(options=chrome_options)
+    try:
+        driver.get("https://youtube.com")
+        time.sleep(5)  # Wait for login if needed
+        cookies = driver.get_cookies()
+        with open("cookies.txt", "w") as f:
+            json.dump(cookies, f)
+    finally:
+        driver.quit()
+
 
 def sanitize_filename(filename):
     """Sanitize the filename to remove invalid characters."""
@@ -172,12 +192,33 @@ def progress_hook(d):
 def get_video_info(url):
     """Fetch available formats for a YouTube video."""
     ydl_opts = {
+        "cookiefile": "cookies.txt",
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "same-origin",
+            "Sec-Fetch-User": "?1",
+        },
+        "extract_flat": False,
         "quiet": True,
         "no_warnings": True,
-        "extract_flat": False,
-        "cookiefile": "cookies.txt",  # Make sure this path is correct
-        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "retries": 10,  # Increased retries
+        "fragment_retries": 10,
+        "extractor_retries": 3,
+        "throttledratelimit": 100,
     }
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                return ydl.extract_info(url, download=False)
+        except Exception as e:
+            if "Sign in" in str(e) and attempt < max_retries - 1:
+                refresh_cookies()
+                continue
+            raise
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -392,8 +433,20 @@ def download():
         "no_warnings": True,
         "progress_hooks": [progress_hook],
         "info_dict": {"_download_id": download_id},
-        "cookiefile": "cookies.txt",  # Make sure this path is correct
-        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "cookiefile": "cookies.txt",
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "same-origin",
+            "Sec-Fetch-User": "?1",
+        },
+        "extract_flat": False,
+        "retries": 10,  # Increased retries
+        "fragment_retries": 10,
+        "extractor_retries": 3,
+        "throttledratelimit": 100,
         "referer": "https://www.youtube.com/",
     }
 
@@ -527,11 +580,21 @@ def debug_ffmpeg_api():
         os.unlink(test_file)
 
         return jsonify(
-            {"status": "success", "result": result, "api_url": app.config['FFMPEG_API_URL']}
+            {
+                "status": "success",
+                "result": result,
+                "api_url": app.config["FFMPEG_API_URL"],
+            }
         )
     except Exception as e:
         return (
-            jsonify({"status": "error", "error": str(e), "api_url": app.config['FFMPEG_API_URL']}),
+            jsonify(
+                {
+                    "status": "error",
+                    "error": str(e),
+                    "api_url": app.config["FFMPEG_API_URL"],
+                }
+            ),
             500,
         )
 
