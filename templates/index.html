@@ -455,26 +455,19 @@
                     const data = await response.json();
 
                     if (!response.ok) {
-                        throw new Error(data.error || 'Failed to start download');
-                    }
-
-                    if (!data.download_id) {
-                        throw new Error('Invalid response from server');
+                        if (data.error && data.error.includes('Sign in')) {
+                            showToast('Authentication required. Please try again in a few minutes.', 'error');
+                        } else {
+                            throw new Error(data.error || 'Failed to start download');
+                        }
+                        return;
                     }
 
                     setupProgressTracking(data.download_id, downloadType);
-
                 } catch (error) {
                     console.error('Download start error:', error);
                     updateDownloadStatus(error.message, true);
-
-                    // Specific handling for API merge errors
-                    if (error.message.includes('merge') || error.message.includes('API')) {
-                        showToast('Video processing failed. Try a different format.', 'error');
-                    } else {
-                        showToast('Download failed. Please try again.', 'error');
-                    }
-                    throw error;
+                    showToast('Download failed: ' + error.message, 'error');
                 }
             }
 

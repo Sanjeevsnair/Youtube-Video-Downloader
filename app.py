@@ -137,31 +137,42 @@ import tempfile
 import uuid
 
 
+def ensure_valid_cookies():
+    """Ensure we have valid YouTube cookies, refresh if needed"""
+    if not os.path.exists("cookies.txt"):
+        return refresh_cookies()
+    
+    # Check if cookies are expired (older than 6 hours)
+    cookie_age = time.time() - os.path.getmtime("cookies.txt")
+    if cookie_age > 6 * 3600:  # 6 hours
+        return refresh_cookies()
+    return True
+
 def refresh_cookies():
+    """Refresh YouTube cookies using Selenium"""
     try:
         chrome_options = Options()
         chrome_options.add_argument("--headless=new")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-
-        # Use persistent profile directory
+        
+        # Persistent profile for cookie storage
         profile_path = os.path.join(os.getcwd(), "chrome_profile")
         chrome_options.add_argument(f"--user-data-dir={profile_path}")
-
+        
         driver = webdriver.Chrome(options=chrome_options)
         try:
-            driver.get("https://accounts.google.com")
-            print("Please login to YouTube within 120 seconds...")
-            time.sleep(120)  # Give more time for login
-
-            # Save cookies
+            print("Navigating to YouTube for authentication...")
+            driver.get("https://accounts.google.com/ServiceLogin?service=youtube&uilel=3&passive=true&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den%26next%3Dhttps%253A%252F%252Fwww.youtube.com%252F&hl=en&ec=65620")
+            
+            print("Please complete the login process within 120 seconds...")
+            time.sleep(120)  # Wait for manual login
+            
+            # Save only relevant cookies
             with open("cookies.txt", "w") as f:
                 f.write("# Netscape HTTP Cookie File\n")
                 for cookie in driver.get_cookies():
-                    if (
-                        "youtube.com" in cookie["domain"]
-                        or "google.com" in cookie["domain"]
-                    ):
+                    if 'youtube.com' in cookie['domain'] or 'google.com' in cookie['domain']:
                         f.write(
                             f"{cookie['domain']}\t"
                             f"{'TRUE' if cookie['domain'].startswith('.') else 'FALSE'}\t"
@@ -171,12 +182,38 @@ def refresh_cookies():
                             f"{cookie['name']}\t"
                             f"{cookie['value']}\n"
                         )
+            return True
         finally:
             driver.quit()
     except Exception as e:
         print(f"Failed to refresh cookies: {str(e)}")
-        raise
-
+        return False
+    
+def get_ytdl_options():
+    return {
+        "cookiefile": "cookies.txt",
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Referer": "https://www.youtube.com/",
+            "Origin": "https://www.youtube.com",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
+        },
+        "extractor_args": {
+            "youtube": {
+                "skip": ["dash", "hls"],
+                "player_client": ["android", "web"],
+            }
+        },
+        "retries": 10,
+        "fragment_retries": 10,
+        "extractor_retries": 3,
+        "ignoreerrors": False,
+        "quiet": True,
+    }
 
 def sanitize_filename(filename):
     """Sanitize the filename to remove invalid characters."""
@@ -219,27 +256,12 @@ def progress_hook(d):
 
 
 def get_video_info(url):
-    """Fetch available formats for a YouTube video."""
-    ydl_opts = {
-        "cookiefile": "cookies.txt",
-        "http_headers": {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Referer": "https://www.youtube.com/",
-        },
-        "extractor_args": {
-            "youtube": {
-                "skip": ["dash", "hls"],
-                "player_client": ["android", "web"],
-            }
-        },
-        "retries": 10,
-        "fragment_retries": 10,
-        "extractor_retries": 3,
-        "ignoreerrors": False,
-    }
+    if not ensure_valid_cookies():
+        return {"error": "Failed to establish authenticated session with YouTube"}
+
+    ydl_opts = get_ytdl_options()
     max_retries = 3
+    
     for attempt in range(max_retries):
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -370,11 +392,16 @@ def get_video_info(url):
 
                 return result
 
-        except Exception as e:
+        except yt_dlp.utils.DownloadError as e:
             if "Sign in" in str(e) and attempt < max_retries - 1:
+                print(f"Authentication required, refreshing cookies (attempt {attempt + 1})")
                 refresh_cookies()
                 continue
-            raise
+            return {"error": str(e)}
+        except Exception as e:
+            return {"error": f"Failed to get video info: {str(e)}"}
+    
+    return {"error": "Max retries reached, please try again later"}
         
 
 # Add this to the download_progress_sse function before returning Response:
@@ -695,6 +722,22 @@ def download_file(filename):
     except FileNotFoundError:
         abort(404)
 
+import threading
+import time
+
+def cookie_maintenance():
+    """Background thread to maintain valid cookies"""
+    while True:
+        try:
+            ensure_valid_cookies()
+            time.sleep(3600)  # Check every hour
+        except Exception as e:
+            print(f"Cookie maintenance error: {str(e)}")
+            time.sleep(300)
+
+# Start the thread when your app launches
+cookie_thread = threading.Thread(target=cookie_maintenance, daemon=True)
+cookie_thread.start()
 
 if __name__ == "__main__":
     # For production, use waitress:
