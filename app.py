@@ -150,7 +150,13 @@ def ensure_valid_cookies():
 
 def refresh_cookies():
     """Refresh YouTube cookies using Selenium"""
+    
+    
     try:
+        # Try browser extraction first
+        ydl_opts = {'cookiesfrombrowser': ('chrome',), 'outtmpl': 'cookies.txt'}
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download(['https://youtube.com'])  # Triggers cookie export
         chrome_options = Options()
         chrome_options.add_argument("--headless=new")
         chrome_options.add_argument("--no-sandbox")
