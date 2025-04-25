@@ -138,47 +138,44 @@ import uuid
 
 
 def refresh_cookies():
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-
-    # Create unique user data directory
-    user_data_dir = f"/tmp/chrome_{uuid.uuid4().hex}"
-    chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
-
-    # Add profile directory where cookies will persist
-    profile_path = os.path.join(os.getcwd(), "chrome_profile")
-    chrome_options.add_argument(f"--user-data-dir={profile_path}")
-
-    driver = None
     try:
+        chrome_options = Options()
+        chrome_options.add_argument("--headless=new")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+
+        # Use persistent profile directory
+        profile_path = os.path.join(os.getcwd(), "chrome_profile")
+        chrome_options.add_argument(f"--user-data-dir={profile_path}")
+
         driver = webdriver.Chrome(options=chrome_options)
-        driver.get("https://youtube.com")
+        try:
+            driver.get("https://accounts.google.com")
+            print("Please login to YouTube within 120 seconds...")
+            time.sleep(120)  # Give more time for login
 
-        # Wait for manual login (if needed)
-        print("Please login manually within 60 seconds...")
-        time.sleep(60)
-
-        # Save cookies in Netscape format
-        with open("cookies.txt", "w") as f:
-            f.write("# Netscape HTTP Cookie File\n")
-            for cookie in driver.get_cookies():
-                f.write(
-                    f"{cookie['domain']}\t"
-                    f"{'TRUE' if cookie['domain'].startswith('.') else 'FALSE'}\t"
-                    f"{cookie['path']}\t"
-                    f"{'TRUE' if cookie['secure'] else 'FALSE'}\t"
-                    f"{int(cookie['expiry']) if 'expiry' in cookie else '0'}\t"
-                    f"{cookie['name']}\t"
-                    f"{cookie['value']}\n"
-                )
-    finally:
-        if driver:
+            # Save cookies
+            with open("cookies.txt", "w") as f:
+                f.write("# Netscape HTTP Cookie File\n")
+                for cookie in driver.get_cookies():
+                    if (
+                        "youtube.com" in cookie["domain"]
+                        or "google.com" in cookie["domain"]
+                    ):
+                        f.write(
+                            f"{cookie['domain']}\t"
+                            f"{'TRUE' if cookie['domain'].startswith('.') else 'FALSE'}\t"
+                            f"{cookie['path']}\t"
+                            f"{'TRUE' if cookie['secure'] else 'FALSE'}\t"
+                            f"{int(cookie['expiry']) if 'expiry' in cookie else '0'}\t"
+                            f"{cookie['name']}\t"
+                            f"{cookie['value']}\n"
+                        )
+        finally:
             driver.quit()
-        # Clean up temporary directory
-        if os.path.exists(user_data_dir):
-            shutil.rmtree(user_data_dir, ignore_errors=True)
+    except Exception as e:
+        print(f"Failed to refresh cookies: {str(e)}")
+        raise
 
 
 def sanitize_filename(filename):
@@ -228,161 +225,157 @@ def get_video_info(url):
         "http_headers": {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept-Language": "en-US,en;q=0.9",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Referer": "https://www.youtube.com/",
         },
-        # Add these for better cookie handling
         "extractor_args": {
             "youtube": {
-                "skip": ["dash", "hls", "translated_subs"],
+                "skip": ["dash", "hls"],
                 "player_client": ["android", "web"],
             }
         },
         "retries": 10,
         "fragment_retries": 10,
         "extractor_retries": 3,
+        "ignoreerrors": False,
     }
     max_retries = 3
     for attempt in range(max_retries):
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                return ydl.extract_info(url, download=False)
+                info = ydl.extract_info(url, download=False)
+
+                # Extract all available formats
+                formats = info.get("formats", [])
+
+                # Get best format for each resolution (video + audio)
+                video_formats = []
+                # Also include video-only formats that can be combined with audio
+                video_only_formats = []
+                audio_formats = []
+
+                for f in formats:
+                    # Video with audio
+                    if f.get("vcodec") != "none" and f.get("acodec") != "none":
+                        resolution = f.get("height", 0)
+                        if resolution:
+                            video_formats.append(
+                                {
+                                    "format_id": f["format_id"],
+                                    "resolution": f"{resolution}p",
+                                    "ext": f.get("ext", "mp4"),
+                                    "filesize": f.get(
+                                        "filesize_approx", f.get("filesize", 0)
+                                    ),
+                                    "note": f.get("format_note", ""),
+                                    "combined": True,  # Video+audio in single stream
+                                }
+                            )
+
+                    # Video only (can be combined with audio)
+                    elif f.get("vcodec") != "none" and f.get("acodec") == "none":
+                        resolution = f.get("height", 0)
+                        if resolution:
+                            video_only_formats.append(
+                                {
+                                    "format_id": f["format_id"],
+                                    "resolution": f"{resolution}p",
+                                    "ext": f.get("ext", "mp4"),
+                                    "filesize": f.get(
+                                        "filesize_approx", f.get("filesize", 0)
+                                    ),
+                                    "note": f.get("format_note", ""),
+                                    "combined": False,  # Needs separate audio
+                                }
+                            )
+
+                    # Audio only
+                    elif f.get("acodec") != "none" and f.get("vcodec") == "none":
+                        audio_formats.append(
+                            {
+                                "format_id": f["format_id"],
+                                "ext": f.get("ext", "mp3"),
+                                "filesize": f.get("filesize_approx", f.get("filesize", 0)),
+                                "note": f.get("format_note", ""),
+                            }
+                        )
+
+                # Create combined format options for video-only formats
+                for vf in video_only_formats:
+                    # Find best audio format to pair with
+                    best_audio = None
+                    for af in audio_formats:
+                        if not best_audio or af.get("filesize", 0) > best_audio.get(
+                            "filesize", 0
+                        ):
+                            best_audio = af
+
+                    if best_audio:
+                        video_formats.append(
+                            {
+                                "format_id": f"{vf['format_id']}+{best_audio['format_id']}",
+                                "resolution": vf["resolution"],
+                                "ext": "mp4",
+                                "filesize": (
+                                    vf.get("filesize", 0) + best_audio.get("filesize", 0)
+                                ),
+                                "note": vf["note"] + " (with audio)",
+                                "combined": False,  # Combined format
+                            }
+                        )
+
+                # Remove duplicate resolutions and sort
+                unique_video_formats = {}
+                for vf in video_formats:
+                    if vf["resolution"] not in unique_video_formats:
+                        unique_video_formats[vf["resolution"]] = vf
+                    elif (
+                        vf["filesize"] > unique_video_formats[vf["resolution"]]["filesize"]
+                    ):
+                        unique_video_formats[vf["resolution"]] = vf
+
+                sorted_video_formats = sorted(
+                    unique_video_formats.values(),
+                    key=lambda x: int(x["resolution"].replace("p", "")),
+                    reverse=True,
+                )
+
+                print(info.get("duration", 0))
+                seconds = info.get("duration", 0)
+
+                if seconds < 0:
+                    return "Invalid input: Seconds cannot be negative"
+
+                hours = seconds // 3600
+                remaining_seconds = seconds % 3600
+                minutes = remaining_seconds // 60
+                seconds = remaining_seconds % 60
+
+                if hours == 0:
+                    time = f"{minutes:02d}:{seconds:02d}"
+                elif minutes == 0:
+                    time = f"{seconds:02d}"
+                else:
+                    time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+                # Prepare response
+                result = {
+                    "title": info.get("title", "Untitled"),
+                    "thumbnail": info.get("thumbnail", ""),
+                    "duration": time,
+                    "video_formats": sorted_video_formats,
+                    "audio_formats": audio_formats,
+                    "error": None,
+                }
+
+                return result
+
         except Exception as e:
             if "Sign in" in str(e) and attempt < max_retries - 1:
                 refresh_cookies()
                 continue
             raise
-
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-
-            # Extract all available formats
-            formats = info.get("formats", [])
-
-            # Get best format for each resolution (video + audio)
-            video_formats = []
-            # Also include video-only formats that can be combined with audio
-            video_only_formats = []
-            audio_formats = []
-
-            for f in formats:
-                # Video with audio
-                if f.get("vcodec") != "none" and f.get("acodec") != "none":
-                    resolution = f.get("height", 0)
-                    if resolution:
-                        video_formats.append(
-                            {
-                                "format_id": f["format_id"],
-                                "resolution": f"{resolution}p",
-                                "ext": f.get("ext", "mp4"),
-                                "filesize": f.get(
-                                    "filesize_approx", f.get("filesize", 0)
-                                ),
-                                "note": f.get("format_note", ""),
-                                "combined": True,  # Video+audio in single stream
-                            }
-                        )
-
-                # Video only (can be combined with audio)
-                elif f.get("vcodec") != "none" and f.get("acodec") == "none":
-                    resolution = f.get("height", 0)
-                    if resolution:
-                        video_only_formats.append(
-                            {
-                                "format_id": f["format_id"],
-                                "resolution": f"{resolution}p",
-                                "ext": f.get("ext", "mp4"),
-                                "filesize": f.get(
-                                    "filesize_approx", f.get("filesize", 0)
-                                ),
-                                "note": f.get("format_note", ""),
-                                "combined": False,  # Needs separate audio
-                            }
-                        )
-
-                # Audio only
-                elif f.get("acodec") != "none" and f.get("vcodec") == "none":
-                    audio_formats.append(
-                        {
-                            "format_id": f["format_id"],
-                            "ext": f.get("ext", "mp3"),
-                            "filesize": f.get("filesize_approx", f.get("filesize", 0)),
-                            "note": f.get("format_note", ""),
-                        }
-                    )
-
-            # Create combined format options for video-only formats
-            for vf in video_only_formats:
-                # Find best audio format to pair with
-                best_audio = None
-                for af in audio_formats:
-                    if not best_audio or af.get("filesize", 0) > best_audio.get(
-                        "filesize", 0
-                    ):
-                        best_audio = af
-
-                if best_audio:
-                    video_formats.append(
-                        {
-                            "format_id": f"{vf['format_id']}+{best_audio['format_id']}",
-                            "resolution": vf["resolution"],
-                            "ext": "mp4",
-                            "filesize": (
-                                vf.get("filesize", 0) + best_audio.get("filesize", 0)
-                            ),
-                            "note": vf["note"] + " (with audio)",
-                            "combined": False,  # Combined format
-                        }
-                    )
-
-            # Remove duplicate resolutions and sort
-            unique_video_formats = {}
-            for vf in video_formats:
-                if vf["resolution"] not in unique_video_formats:
-                    unique_video_formats[vf["resolution"]] = vf
-                elif (
-                    vf["filesize"] > unique_video_formats[vf["resolution"]]["filesize"]
-                ):
-                    unique_video_formats[vf["resolution"]] = vf
-
-            sorted_video_formats = sorted(
-                unique_video_formats.values(),
-                key=lambda x: int(x["resolution"].replace("p", "")),
-                reverse=True,
-            )
-
-            print(info.get("duration", 0))
-            seconds = info.get("duration", 0)
-
-            if seconds < 0:
-                return "Invalid input: Seconds cannot be negative"
-
-            hours = seconds // 3600
-            remaining_seconds = seconds % 3600
-            minutes = remaining_seconds // 60
-            seconds = remaining_seconds % 60
-
-            if hours == 0:
-                time = f"{minutes:02d}:{seconds:02d}"
-            elif minutes == 0:
-                time = f"{seconds:02d}"
-            else:
-                time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-
-            # Prepare response
-            result = {
-                "title": info.get("title", "Untitled"),
-                "thumbnail": info.get("thumbnail", ""),
-                "duration": time,
-                "video_formats": sorted_video_formats,
-                "audio_formats": audio_formats,
-                "error": None,
-            }
-
-            return result
-
-    except Exception as e:
-        return {"error": str(e)}
-
+        
 
 # Add this to the download_progress_sse function before returning Response:
 @app.route("/debug-progress/<download_id>")
@@ -474,17 +467,19 @@ def download():
         "http_headers": {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept-Language": "en-US,en;q=0.9",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Referer": "https://www.youtube.com/",
         },
-        # Add these for better cookie handling
         "extractor_args": {
             "youtube": {
-                "skip": ["dash", "hls", "translated_subs"],
+                "skip": ["dash", "hls"],
                 "player_client": ["android", "web"],
             }
         },
         "retries": 10,
         "fragment_retries": 10,
         "extractor_retries": 3,
+        "ignoreerrors": False,
         "referer": "https://www.youtube.com/",
     }
 
