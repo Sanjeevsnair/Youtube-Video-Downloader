@@ -279,70 +279,121 @@ def get_video_info(url):
     if not ensure_valid_cookies():
         return {"error": "Failed to establish authenticated session with YouTube"}
 
-    ydl_opts = {
-        **get_ytdl_options(),
-        'extract_flat': False,
-        'force_generic_extractor': True,
-        'format_sort': ['vcodec:h264'],
-        'allowed_extractors': ['youtube'],
-    }
+    ydl_opts = get_ytdl_options()
+    max_retries = 3
+    
+    for attempt in range(max_retries):
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                formats = info.get("formats", [])
 
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            
-            # Get all available formats
-            formats = info.get('formats', [])
-            
-            # Improved format extraction
-            video_formats = []
-            audio_formats = []
-            
-            for f in formats:
-                # Video formats (with or without audio)
-                if f.get('vcodec') != 'none':
-                    resolution = f.get('height', 0)
-                    if resolution:
-                        video_formats.append({
-                            'format_id': f['format_id'],
-                            'resolution': f"{resolution}p",
-                            'ext': f.get('ext', 'mp4'),
-                            'filesize': f.get('filesize_approx', f.get('filesize', 0)),
-                            'note': f.get('format_note', ''),
-                            'combined': f.get('acodec') != 'none',
+                # Filter only 360p and 720p formats
+                allowed_resolutions = ["360p", "720p"]
+                video_formats = []
+                video_only_formats = []
+                audio_formats = []
+
+                for f in formats:
+                    resolution = f"{f.get('height', 0)}p"
+                    
+                    # Video with audio (combined)
+                    if f.get("vcodec") != "none" and f.get("acodec") != "none":
+                        if resolution in allowed_resolutions:
+                            video_formats.append({
+                                "format_id": f["format_id"],
+                                "resolution": resolution,
+                                "ext": f.get("ext", "mp4"),
+                                "filesize": f.get("filesize_approx", f.get("filesize", 0)),
+                                "note": f.get("format_note", ""),
+                                "combined": True,
+                            })
+
+                    # Video-only (can be merged with audio)
+                    elif f.get("vcodec") != "none" and f.get("acodec") == "none":
+                        if resolution in allowed_resolutions:
+                            video_only_formats.append({
+                                "format_id": f["format_id"],
+                                "resolution": resolution,
+                                "ext": f.get("ext", "mp4"),
+                                "filesize": f.get("filesize_approx", f.get("filesize", 0)),
+                                "note": f.get("format_note", ""),
+                                "combined": False,
+                            })
+
+                    # Audio-only (for merging with video-only formats)
+                    elif f.get("acodec") != "none" and f.get("vcodec") == "none":
+                        audio_formats.append({
+                            "format_id": f["format_id"],
+                            "ext": f.get("ext", "mp3"),
+                            "filesize": f.get("filesize_approx", f.get("filesize", 0)),
+                            "note": f.get("format_note", ""),
                         })
-                
-                # Audio-only formats
-                elif f.get('acodec') != 'none' and f.get('vcodec') == 'none':
-                    audio_formats.append({
-                        'format_id': f['format_id'],
-                        'ext': f.get('ext', 'mp3'),
-                        'filesize': f.get('filesize_approx', f.get('filesize', 0)),
-                        'note': f.get('format_note', ''),
-                        'abr': f.get('abr', 0),  # Audio bitrate
-                    })
 
-            # Sort formats
-            video_formats.sort(key=lambda x: int(x['resolution'].replace('p', '')), reverse=True)
-            audio_formats.sort(key=lambda x: x['abr'], reverse=True)
+                # Pair video-only formats with best audio
+                for vf in video_only_formats:
+                    best_audio = None
+                    for af in audio_formats:
+                        if not best_audio or af.get("filesize", 0) > best_audio.get("filesize", 0):
+                            best_audio = af
 
-            # Prepare duration string
-            duration = info.get('duration', 0)
-            hours = duration // 3600
-            minutes = (duration % 3600) // 60
-            seconds = duration % 60
-            time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}" if hours else f"{minutes:02d}:{seconds:02d}"
+                    if best_audio:
+                        video_formats.append({
+                            "format_id": f"{vf['format_id']}+{best_audio['format_id']}",
+                            "resolution": vf["resolution"],
+                            "ext": "mp4",
+                            "filesize": (vf.get("filesize", 0) + best_audio.get("filesize", 0)),
+                            "note": vf["note"] + " (with audio)",
+                            "combined": False,
+                        })
 
-            return {
-                'title': info.get('title', 'Untitled'),
-                'thumbnail': info.get('thumbnail', ''),
-                'duration': time_str,
-                'video_formats': video_formats,
-                'audio_formats': audio_formats,
-                'error': None,
-            }
-    except Exception as e:
-        return {'error': f"Failed to get video info: {str(e)}"}
+                # Remove duplicates and sort (360p first, then 720p)
+                unique_video_formats = {}
+                for vf in video_formats:
+                    if vf["resolution"] not in unique_video_formats:
+                        unique_video_formats[vf["resolution"]] = vf
+                    elif vf["filesize"] > unique_video_formats[vf["resolution"]]["filesize"]:
+                        unique_video_formats[vf["resolution"]] = vf
+
+                # Sort by resolution (360p first)
+                sorted_video_formats = sorted(
+                    unique_video_formats.values(),
+                    key=lambda x: int(x["resolution"].replace("p", "")),
+                )
+
+                # Format duration (HH:MM:SS)
+                seconds = info.get("duration", 0)
+                hours = seconds // 3600
+                remaining_seconds = seconds % 3600
+                minutes = remaining_seconds // 60
+                seconds = remaining_seconds % 60
+
+                if hours == 0:
+                    time = f"{minutes:02d}:{seconds:02d}"
+                elif minutes == 0:
+                    time = f"{seconds:02d}"
+                else:
+                    time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+                return {
+                    "title": info.get("title", "Untitled"),
+                    "thumbnail": info.get("thumbnail", ""),
+                    "duration": time,
+                    "video_formats": sorted_video_formats,
+                    "audio_formats": audio_formats,
+                    "error": None,
+                }
+
+        except yt_dlp.utils.DownloadError as e:
+            if "Sign in" in str(e) and attempt < max_retries - 1:
+                print(f"Authentication required, refreshing cookies (attempt {attempt + 1})")
+                refresh_cookies()
+                continue
+            return {"error": str(e)}
+        except Exception as e:
+            return {"error": f"Failed to get video info: {str(e)}"}
+    
+    return {"error": "Max retries reached, please try again later"}
         
 
 # Add this to the download_progress_sse function before returning Response:
