@@ -141,49 +141,44 @@ def ensure_valid_cookies():
     """Ensure we have valid YouTube cookies, refresh if needed"""
     if not os.path.exists("cookies.txt"):
         return refresh_cookies()
-
+    
     # Check if cookies are expired (older than 6 hours)
     cookie_age = time.time() - os.path.getmtime("cookies.txt")
     if cookie_age > 6 * 3600:  # 6 hours
         return refresh_cookies()
     return True
 
-
 def refresh_cookies():
     """Refresh YouTube cookies using Selenium"""
-
+    
+    
     try:
         # Try browser extraction first
-        ydl_opts = {"cookiesfrombrowser": ("chrome",), "outtmpl": "cookies.txt"}
+        ydl_opts = {'cookiesfrombrowser': ('chrome',), 'outtmpl': 'cookies.txt'}
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download(["https://youtube.com"])  # Triggers cookie export
+            ydl.download(['https://youtube.com'])  # Triggers cookie export
         chrome_options = Options()
         chrome_options.add_argument("--headless=new")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-
+        
         # Persistent profile for cookie storage
         profile_path = os.path.join(os.getcwd(), "chrome_profile")
         chrome_options.add_argument(f"--user-data-dir={profile_path}")
-
+        
         driver = webdriver.Chrome(options=chrome_options)
         try:
             print("Navigating to YouTube for authentication...")
-            driver.get(
-                "https://accounts.google.com/ServiceLogin?service=youtube&uilel=3&passive=true&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den%26next%3Dhttps%253A%252F%252Fwww.youtube.com%252F&hl=en&ec=65620"
-            )
-
+            driver.get("https://accounts.google.com/ServiceLogin?service=youtube&uilel=3&passive=true&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den%26next%3Dhttps%253A%252F%252Fwww.youtube.com%252F&hl=en&ec=65620")
+            
             print("Please complete the login process within 120 seconds...")
             time.sleep(120)  # Wait for manual login
-
+            
             # Save only relevant cookies
             with open("cookies.txt", "w") as f:
                 f.write("# Netscape HTTP Cookie File\n")
                 for cookie in driver.get_cookies():
-                    if (
-                        "youtube.com" in cookie["domain"]
-                        or "google.com" in cookie["domain"]
-                    ):
+                    if 'youtube.com' in cookie['domain'] or 'google.com' in cookie['domain']:
                         f.write(
                             f"{cookie['domain']}\t"
                             f"{'TRUE' if cookie['domain'].startswith('.') else 'FALSE'}\t"
@@ -199,8 +194,7 @@ def refresh_cookies():
     except Exception as e:
         print(f"Failed to refresh cookies: {str(e)}")
         return False
-
-
+    
 def get_ytdl_options():
     return {
         "cookiefile": "cookies.txt",
@@ -226,7 +220,6 @@ def get_ytdl_options():
         "ignoreerrors": False,
         "quiet": True,
     }
-
 
 def sanitize_filename(filename):
     """Sanitize the filename to remove invalid characters."""
@@ -274,7 +267,7 @@ def get_video_info(url):
 
     ydl_opts = get_ytdl_options()
     max_retries = 3
-
+    
     for attempt in range(max_retries):
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -289,85 +282,63 @@ def get_video_info(url):
 
                 for f in formats:
                     resolution = f"{f.get('height', 0)}p"
-
+                    
                     # Video with audio (combined)
                     if f.get("vcodec") != "none" and f.get("acodec") != "none":
                         if resolution in allowed_resolutions:
-                            video_formats.append(
-                                {
-                                    "format_id": f["format_id"],
-                                    "resolution": resolution,
-                                    "ext": f.get("ext", "mp4"),
-                                    "filesize": f.get(
-                                        "filesize_approx", f.get("filesize", 0)
-                                    ),
-                                    "note": f.get("format_note", ""),
-                                    "combined": True,
-                                }
-                            )
+                            video_formats.append({
+                                "format_id": f["format_id"],
+                                "resolution": resolution,
+                                "ext": f.get("ext", "mp4"),
+                                "filesize": f.get("filesize_approx", f.get("filesize", 0)),
+                                "note": f.get("format_note", ""),
+                                "combined": True,
+                            })
 
                     # Video-only (can be merged with audio)
                     elif f.get("vcodec") != "none" and f.get("acodec") == "none":
                         if resolution in allowed_resolutions:
-                            video_only_formats.append(
-                                {
-                                    "format_id": f["format_id"],
-                                    "resolution": resolution,
-                                    "ext": f.get("ext", "mp4"),
-                                    "filesize": f.get(
-                                        "filesize_approx", f.get("filesize", 0)
-                                    ),
-                                    "note": f.get("format_note", ""),
-                                    "combined": False,
-                                }
-                            )
+                            video_only_formats.append({
+                                "format_id": f["format_id"],
+                                "resolution": resolution,
+                                "ext": f.get("ext", "mp4"),
+                                "filesize": f.get("filesize_approx", f.get("filesize", 0)),
+                                "note": f.get("format_note", ""),
+                                "combined": False,
+                            })
 
                     # Audio-only (for merging with video-only formats)
                     elif f.get("acodec") != "none" and f.get("vcodec") == "none":
-                        audio_formats.append(
-                            {
-                                "format_id": f["format_id"],
-                                "ext": f.get("ext", "mp3"),
-                                "filesize": f.get(
-                                    "filesize_approx", f.get("filesize", 0)
-                                ),
-                                "note": f.get("format_note", ""),
-                            }
-                        )
+                        audio_formats.append({
+                            "format_id": f["format_id"],
+                            "ext": f.get("ext", "mp3"),
+                            "filesize": f.get("filesize_approx", f.get("filesize", 0)),
+                            "note": f.get("format_note", ""),
+                        })
 
                 # Pair video-only formats with best audio
                 for vf in video_only_formats:
                     best_audio = None
                     for af in audio_formats:
-                        if not best_audio or af.get("filesize", 0) > best_audio.get(
-                            "filesize", 0
-                        ):
+                        if not best_audio or af.get("filesize", 0) > best_audio.get("filesize", 0):
                             best_audio = af
 
                     if best_audio:
-                        video_formats.append(
-                            {
-                                "format_id": f"{vf['format_id']}+{best_audio['format_id']}",
-                                "resolution": vf["resolution"],
-                                "ext": "mp4",
-                                "filesize": (
-                                    vf.get("filesize", 0)
-                                    + best_audio.get("filesize", 0)
-                                ),
-                                "note": vf["note"] + " (with audio)",
-                                "combined": False,
-                            }
-                        )
+                        video_formats.append({
+                            "format_id": f"{vf['format_id']}+{best_audio['format_id']}",
+                            "resolution": vf["resolution"],
+                            "ext": "mp4",
+                            "filesize": (vf.get("filesize", 0) + best_audio.get("filesize", 0)),
+                            "note": vf["note"] + " (with audio)",
+                            "combined": False,
+                        })
 
                 # Remove duplicates and sort (360p first, then 720p)
                 unique_video_formats = {}
                 for vf in video_formats:
                     if vf["resolution"] not in unique_video_formats:
                         unique_video_formats[vf["resolution"]] = vf
-                    elif (
-                        vf["filesize"]
-                        > unique_video_formats[vf["resolution"]]["filesize"]
-                    ):
+                    elif vf["filesize"] > unique_video_formats[vf["resolution"]]["filesize"]:
                         unique_video_formats[vf["resolution"]] = vf
 
                 # Sort by resolution (360p first)
@@ -401,17 +372,15 @@ def get_video_info(url):
 
         except yt_dlp.utils.DownloadError as e:
             if "Sign in" in str(e) and attempt < max_retries - 1:
-                print(
-                    f"Authentication required, refreshing cookies (attempt {attempt + 1})"
-                )
+                print(f"Authentication required, refreshing cookies (attempt {attempt + 1})")
                 refresh_cookies()
                 continue
             return {"error": str(e)}
         except Exception as e:
             return {"error": f"Failed to get video info: {str(e)}"}
-
+    
     return {"error": "Max retries reached, please try again later"}
-
+        
 
 # Add this to the download_progress_sse function before returning Response:
 @app.route("/debug-progress/<download_id>")
@@ -731,10 +700,8 @@ def download_file(filename):
     except FileNotFoundError:
         abort(404)
 
-
 import threading
 import time
-
 
 def cookie_maintenance():
     """Background thread to maintain valid cookies"""
@@ -745,7 +712,6 @@ def cookie_maintenance():
         except Exception as e:
             print(f"Cookie maintenance error: {str(e)}")
             time.sleep(300)
-
 
 # Start the thread when your app launches
 cookie_thread = threading.Thread(target=cookie_maintenance, daemon=True)
