@@ -525,25 +525,84 @@
         }
 
         /* Footer */
+        
+
+        /* Footer Styles */
         footer {
-            text-align: center;
-            padding: 50px 20px 30px;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.9rem;
-            position: relative;
+            padding: 40px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
             margin-top: 80px;
+            position: relative;
         }
 
-        footer::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80%;
-            max-width: 400px;
-            height: 1px;
-            background: var(--gradient);
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+
+        .footer-disclaimer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8rem;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .footer-disclaimer p {
+            margin-bottom: 10px;
+        }
+
+        .footer-social {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .footer-social a {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .footer-social a:hover {
+            color: var(--light);
+            transform: translateY(-3px);
+        }
+
+        @media (max-width: 768px) {
+            .footer-links {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+            }
+
+            .footer-disclaimer {
+                font-size: 0.75rem;
+            }
         }
 
         /* Animations */
@@ -635,7 +694,7 @@
                 padding: 15px;
                 border-radius: 0 0 20px 20px;
                 min-width: unset;
-                box-shadow:none;
+                box-shadow: none;
             }
 
             .submit-btn:hover {
@@ -701,7 +760,7 @@
     <div class="container">
         <header>
             <h1 class="logo">StreamSave</h1>
-            <p class="tagline">Download Reels, Stories & Posts in HD Quality</p>
+            <p class="tagline">Download Reels & Posts in HD Quality</p>
         </header>
 
         <div class="input-container">
@@ -799,7 +858,31 @@
     </div>
 
     <footer>
-        <p>Use this tool for personal use only. Not affiliated with Instagram.</p>
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="/terms" target="_blank">Terms of Service</a>
+                <a href="/privacy" target="_blank">Privacy Policy</a>
+                <a href="/dmca" target="_blank">DMCA</a>
+                <a href="/contact" target="_blank">Contact Us</a>
+            </div>
+            <div class="footer-disclaimer">
+                <p>©2025 StreamSave. Not affiliated with Instagram or Meta. All trademarks are the property of their
+                    respective owners.</p>
+                <p>This tool is intended for personal use only. Please respect copyright laws and only download content
+                    you have permission to use.</p>
+            </div>
+            <div class="footer-social">
+                <a href="https://twitter.com/instasave" target="_blank" aria-label="Twitter">
+                    <i class="fab fa-twitter"></i>
+                </a>
+                <a href="https://github.com/instasave" target="_blank" aria-label="GitHub">
+                    <i class="fab fa-github"></i>
+                </a>
+                <a href="https://facebook.com/instasave" target="_blank" aria-label="Facebook">
+                    <i class="fab fa-facebook"></i>
+                </a>
+            </div>
+        </div>
     </footer>
 
     <script>
