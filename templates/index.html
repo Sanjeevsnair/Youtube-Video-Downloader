@@ -4,659 +4,973 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamSave | YouTube Video Downloader</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>InstaSave - Download Reels, Stories & Posts</title>
+    <meta name="description" content="Download Instagram Reels, Stories, Posts, and Videos in high quality">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #FF3A5C;
+            --secondary: #5E17EB;
+            --tertiary: #00D1FF;
+            --dark: #151515;
+            --light: #FFFFFF;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --gradient: linear-gradient(135deg, #5E17EB, #FF3A5C, #00D1FF);
+            --shadow-neon: 0 0 20px rgba(94, 23, 235, 0.4), 0 0 40px rgba(255, 58, 92, 0.2);
+            --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.15);
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --radius-sm: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', 'Segoe UI', sans-serif;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+        body {
+            background: var(--dark);
+            color: var(--light);
+            min-height: 100vh;
+            line-height: 1.6;
+            background-image:
+                radial-gradient(circle at 20% 35%, rgba(94, 23, 235, 0.15), transparent 25%),
+                radial-gradient(circle at 75% 80%, rgba(255, 58, 92, 0.1), transparent 25%),
+                radial-gradient(circle at 65% 15%, rgba(0, 209, 255, 0.1), transparent 25%);
+            background-attachment: fixed;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            position: relative;
+        }
+
+        .logo {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: var(--shadow-neon);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            position: relative;
+        }
+
+        .logo::after {
+            content: "InstaSave";
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            z-index: -1;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            opacity: 0.3;
+            filter: blur(8px);
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            font-weight: 300;
+            opacity: 0.8;
+            margin-bottom: 40px;
+            letter-spacing: 1px;
+        }
+
+        .input-container {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto 60px;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease;
+        }
+
+        .input-wrapper:hover {
+            transform: translateY(-5px) scale(1.01);
+        }
+
+        .input-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: -2px -2px -2px -2px;
+            background: var(--gradient);
+            border-radius: var(--radius-lg);
+            z-index: -1;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .input-wrapper:hover::before {
+            opacity: 1;
+        }
+
+        .input-group {
+            display: flex;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            background: rgba(21, 21, 21, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-soft);
+            position: relative;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 24px 30px;
+            background: transparent;
+            border: none;
+            color: var(--light);
+            font-size: 1.1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .submit-btn {
+            background: var(--gradient);
+            color: var(--light);
+            border: none;
+            padding: 0 40px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+            min-width: 180px;
+        }
+
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.8s ease;
+        }
+
+        .submit-btn:hover::before {
+            left: 100%;
+        }
+
+        .submit-btn:hover {
+            box-shadow: 0 0 15px rgba(255, 58, 92, 0.5);
+        }
+
+        .result-container {
+            margin-top: 40px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s forwards;
+        }
+
+        /* Card design for media content */
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 40px;
+            margin-top: 40px;
+        }
+
+        .media-card {
+            left: 410px;
+            position: relative;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            padding-left: 2px;
+            padding-right: 2px;
+            padding-top: 2px;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-soft);
+            opacity: 0;
+            transform: translateY(20px) rotateX(10deg);
+            animation: cardPopIn 0.8s forwards;
+            animation-delay: calc(var(--delay) * 150ms);
+            transform-style: preserve-3d;
+        }
+
+        .media-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius-lg);
+            padding: 1px;
+            background: var(--gradient);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0.5;
+            transition: opacity 0.3s ease;
+        }
+
+        .media-card:hover {
+            transform: translateY(-10px) rotateX(0deg) scale(1.02);
+            box-shadow: var(--shadow-neon);
+        }
+
+        .media-card:hover::before {
+            opacity: 1;
+        }
+
+        .video-container {
+            position: relative;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            overflow: hidden;
+            aspect-ratio: 9/16;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .custom-video-player {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .play-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(255, 58, 92, 0.2);
+            backdrop-filter: blur(5px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 24px;
+            box-shadow: 0 0 20px rgba(255, 58, 92, 0.4);
+            z-index: 5;
+        }
+
+        .play-btn:hover {
+            background: var(--primary);
+            transform: translate(-50%, -50%) scale(1.1);
+            box-shadow: 0 0 30px rgba(255, 58, 92, 0.6);
+        }
+
+        .video-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+            padding: 30px 20px 15px;
+            display: flex;
+            align-items: center;
+            transition: opacity 0.3s ease;
+            opacity: 0;
+            z-index: 4;
+        }
+
+        .video-container:hover .video-controls {
+            opacity: 1;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 58, 92, 0.3);
+            color: var(--light);
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            margin: 0 15px;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background: var(--gradient);
+            width: 0;
+            border-radius: 3px;
+            transition: width 0.1s linear;
+        }
+
+        .time-display {
+            font-size: 12px;
+            color: white;
+            margin-left: 10px;
+            font-weight: 500;
+            min-width: 60px;
+        }
+
+        .media-info {
+            padding: 25px;
+            position: relative;
+        }
+
+        .media-type {
+            position: absolute;
+            top: -15px;
+            left: 25px;
+            background: var(--gradient);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .download-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 16px;
+            background: var(--gradient);
+            color: white;
+            text-align: center;
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            font-size: 1rem;
+            margin-top: 20px;
+        }
+
+        .download-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.6s ease;
+        }
+
+        .download-btn:hover::before {
+            left: 100%;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2), 0 0 15px rgba(94, 23, 235, 0.4);
+        }
+
+        /* Alert messages */
+        .alert {
+            padding: 20px;
+            border-radius: var(--radius-md);
+            margin-bottom: 30px;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s forwards;
+            position: relative;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .error {
+            background-color: rgba(220, 38, 38, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(220, 38, 38, 0.3);
+        }
+
+        .success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .alert i {
+            font-size: 1.5rem;
+        }
+
+        /* Loading animation */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .loader {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            margin: 0 auto 30px;
+        }
+
+        .loader:before {
+            content: '';
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 4px solid transparent;
+            border-top-color: var(--primary);
+            border-bottom-color: var(--tertiary);
+            animation: spin 1.5s linear infinite;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .loader:after {
+            content: '';
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 4px solid transparent;
+            border-left-color: var(--secondary);
+            border-right-color: var(--secondary);
+            animation: spin 2s linear infinite reverse;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0.7;
+        }
+
+        /* Badge styles */
+        .floating-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transform: translateY(-10px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .media-card:hover .floating-badge {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 50px 20px 30px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            position: relative;
+            margin-top: 80px;
+        }
+
+        footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 400px;
+            height: 1px;
+            background: var(--gradient);
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes cardPopIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px) rotateX(10deg);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) rotateX(0deg);
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .media-preview-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            aspect-ratio: 9/16;
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+
+        .media-preview {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 0.5s ease;
+        }
+
+        .media-card:hover .media-preview {
+            transform: scale(1.05);
+        }
+
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+
+            .logo {
+                font-size: 2.5rem;
+            }
+
+            .tagline {
+                font-size: 1rem;
+                margin-bottom: 30px;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            input[type="text"] {
+                padding: 20px;
+                font-size: 14px;
+                border-radius: 20px 20px 0 0;
+                width: 100%;
+                text-overflow: ellipsis;
+            }
+
+            .submit-btn {
+                width: 100%;
+                padding: 15px;
+                border-radius: 0 0 20px 20px;
+                min-width: unset;
+                box-shadow:none;
+            }
+
+            .submit-btn:hover {
+                box-shadow: none;
+            }
+
+            .media-grid {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .media-card {
+                width: 100%;
+                left: 0px;
+            }
+
+            .play-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 20px;
+            }
+
+            .video-controls {
+                padding: 25px 15px 12px;
+            }
+
+            .media-info {
+                padding: 20px;
+            }
+
+            .download-btn {
+                padding: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo {
+                font-size: 2rem;
+            }
+
+            .tagline {
+                font-size: 0.9rem;
+            }
+
+            .alert {
+                padding: 15px;
+            }
+
+            .media-type {
+                font-size: 0.7rem;
+                padding: 6px 12px;
+            }
+
+            .floating-badge {
+                padding: 6px 12px;
+                font-size: 0.7rem;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
-    <!-- Background Effects -->
-    <div class="position-fixed top-0 start-0 w-100 h-100" style="z-index: -1; overflow: hidden;">
-        <div class="position-absolute"
-            style="width: 40%; height: 40%; top: -15%; right: -15%; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.08)); border-radius: 50%;">
-        </div>
-        <div class="position-absolute"
-            style="width: 30%; height: 30%; bottom: -10%; left: -10%; background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(14, 165, 233, 0.08)); border-radius: 50%;">
-        </div>
-    </div>
-
-    <div class="container my-5">
-        <header class="text-center mb-5">
-            <h1>StreamSave</h1>
-            <p class="lead">YouTube Video Downloader</p>
+    <div class="container">
+        <header>
+            <h1 class="logo">StreamSave</h1>
+            <p class="tagline">Download Reels, Stories & Posts in HD Quality</p>
         </header>
 
-        <div class="url-input-container mb-5">
-            <form method="POST" id="searchForm">
-                <div class="url-input-wrap">
-                    <div class="url-input-icon">
-                        <i class="fab fa-youtube"></i>
+        <div class="input-container">
+            <div class="input-wrapper">
+                <form method="POST" action="/" id="downloadForm">
+                    <div class="input-group">
+                        <input type="text" name="url"
+                            placeholder="Paste Instagram URL here (e.g., https://www.instagram.com/p/ABC123/)" required>
+                        <button type="submit" class="submit-btn">
+                            <i class="fas fa-arrow-down"></i>Download Now
+                        </button>
                     </div>
-                    <input type="url" class="url-input" name="url" placeholder="Paste YouTube video URL here" required>
-                    <button class="btn-fetch ms-3" type="submit">
-                        <i class="fas fa-search me-2"></i>Download Video
-                    </button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
 
         {% if error %}
-        <div class="alert alert-danger mb-4 rounded-xl">
-            <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+        <div class="alert error">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>{{ error }}</span>
         </div>
         {% endif %}
 
-        {% if video_info %}
-        <div class="row g-4">
-            <div class="col-lg-5">
-                <!-- In the video-showcase div, add a play button overlay -->
-                <div class="video-showcase">
-                    <img src="{{ thumbnail }}" class="thumbnail-img" alt="Video thumbnail">
-                    <div class="play-button-overlay">
-                        <i class="fas fa-play-circle"></i>
-                    </div>
-                    <div class="video-overlay">
-                        <h2 class="video-title">{{ title }}</h2>
-                        <div class="video-meta">
-                            <div class="video-meta-item">
-                                <i class="fas fa-user"></i>
-                                <span>{{ video_info.uploader }}</span>
-                            </div>
-                            <div class="video-meta-item">
-                                <i class="fas fa-eye"></i>
-                                <span>{{ video_info.view_count }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="video-badge">
-                        <i class="fas fa-clock"></i>
-                        <span>{{ video_info.duration }}</span>
-                    </div>
-                </div>
-
-                <!-- Add a modal for the embedded YouTube player -->
-                <div class="modal fade" id="videoPlayerModal" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">{{ title }}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                    aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body p-0">
-                                <div id="youtube-player-container"
-                                    style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
-                                    <iframe id="youtube-player-iframe"
-                                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
-                                        frameborder="0" allowfullscreen></iframe>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-7">
-                <div class="glass-card">
-                    <div class="format-type-tabs">
-                        <button class="format-tab active" data-tab="video">
-                            <i class="fas fa-video me-2"></i>Video
-                            <span class="format-badge-count">{{ video_info.video_formats|length }}</span>
-                        </button>
-                        <button class="format-tab" data-tab="audio">
-                            <i class="fas fa-music me-2"></i>Audio
-                            <span class="format-badge-count">{{ video_info.audio_formats|length }}</span>
-                        </button>
-                    </div>
-
-                    <div class="tab-content">
-                        <div class="tab-pane active" id="video-formats">
-                            <div class="format-cards">
-                                {% for format in video_info.video_formats %}
-                                <div class="format-card">
-                                    <div class="format-card-header">
-                                        <div class="format-icon format-icon-video">
-                                            <i class="fas fa-video"></i>
-                                        </div>
-                                        <div>
-                                            <div class="format-name">{{ format.ext.upper() }}</div>
-                                            <div class="format-info">
-                                                {% if not format.combined %}
-                                                <span>Video</span>
-                                                {% else %}
-                                                <span>Video with Audio</span>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="format-quality">
-                                        <i class="fas fa-film me-1"></i>
-                                        {{ format.resolution }}
-                                    </div>
-
-                                    <div class="format-metrics">
-                                        {% if format.filesize %}
-                                        <div class="format-metric">
-                                            <i class="fas fa-weight-hanging"></i>
-                                            <span>{{ (format.filesize / (1024 * 1024)) | round(2) }} MB</span>
-                                        </div>
-                                        {% endif %}
-                                    </div>
-
-                                    <button class="btn-download download-btn" data-type="video"
-                                        data-format="{{ format.format_id }}">
-                                        <i class="fas fa-download"></i>
-                                        <span>Download</span>
-                                    </button>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-
-                        <div class="tab-pane" id="audio-formats" style="display: none;">
-                            <div class="format-cards">
-                                {% for format in video_info.audio_formats %}
-                                <div class="format-card">
-                                    <div class="format-card-header">
-                                        <div class="format-icon format-icon-audio">
-                                            <i class="fas fa-music"></i>
-                                        </div>
-                                        <div>
-                                            <div class="format-name">MP3</div>
-                                            <div class="format-info">Audio Only</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="format-quality">
-                                        <i class="fas fa-volume-up me-1"></i>
-                                        {{ format.note }}
-                                    </div>
-
-                                    <div class="format-metrics">
-                                        {% if format.filesize %}
-                                        <div class="format-metric">
-                                            <i class="fas fa-weight-hanging"></i>
-                                            <span>{{ (format.filesize / (1024 * 1024)) | round(2) }} MB</span>
-                                        </div>
-                                        {% endif %}
-                                    </div>
-
-                                    <button class="btn-download download-btn" data-type="audio"
-                                        data-format="{{ format.format_id }}">
-                                        <i class="fas fa-download"></i>
-                                        <span>Download</span>
-                                    </button>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="loading" id="loadingIndicator">
+            <div class="loader"></div>
+            <p>Fetching your Instagram content...</p>
         </div>
 
-        <input type="hidden" id="videoUrl" value="{{ url }}">
-        {% else %}
-        <!-- Feature Cards -->
-        <div class="row g-4 mt-5">
-            <div class="col-md-4">
-                <div class="feature-card hover-lift">
-                    <div class="feature-icon feature-icon-1">
-                        <i class="fas fa-bolt"></i>
+        {% if success %}
+        <div class="result-container">
+
+
+            <div class="media-grid">
+                {% for media in media_info %}
+                <div class="media-card" style="--delay: {{ loop.index }}">
+                    {% if media.ext == 'mp4' %}
+                    <div class="video-container">
+                        <video class="custom-video-player" data-video-id="{{ loop.index }}"
+                            poster="{{ media.url }}?poster=true">
+                            <source src="{{ media.url }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div class="play-btn" data-video-id="{{ loop.index }}">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="video-controls">
+                            <button class="control-btn toggle-play" data-video-id="{{ loop.index }}">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <div class="progress-bar">
+                                <div class="progress" data-video-id="{{ loop.index }}"></div>
+                            </div>
+                            <span class="time-display">00:00</span>
+                        </div>
+                        <span class="floating-badge">
+                            <i class="fas fa-video"></i> {{ content_type|upper }}
+                        </span>
                     </div>
-                    <h3 class="feature-title">Fast & Simple</h3>
-                    <p class="feature-text">Download YouTube videos in seconds with our streamlined interface.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="feature-card hover-lift">
-                    <div class="feature-icon feature-icon-2">
-                        <i class="fas fa-check-circle"></i>
+                    <div class="media-info">
+                        <form method="POST" action="/download" class="download-form">
+                            <input type="hidden" name="url" value="{{ url }}">
+                            <input type="hidden" name="media_url" value="{{ media.url }}">
+                            <input type="hidden" name="ext" value="{{ media.ext }}">
+                            <input type="hidden" name="title" value="{{ media.title }}">
+                            <button type="submit" class="download-btn">
+                                <i class="fas fa-download"></i> Download HD Quality
+                            </button>
+                        </form>
                     </div>
-                    <h3 class="feature-title">High Quality</h3>
-                    <p class="feature-text">Choose from multiple quality options for both video and audio.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="feature-card hover-lift">
-                    <div class="feature-icon feature-icon-3">
-                        <i class="fas fa-shield-alt"></i>
+                    {% else %}
+                    <div class="media-preview-container">
+                        <img src="{{ media.url }}" class="media-preview" alt="Instagram Media">
+                        <span class="floating-badge">
+                            <i class="fas fa-image"></i> {{ content_type|upper }}
+                        </span>
                     </div>
-                    <h3 class="feature-title">Free & Secure</h3>
-                    <p class="feature-text">No registration required. Free to use with no hidden fees.</p>
+                    <div class="media-info">
+                        <span class="media-type">IMAGE</span>
+                        <form method="POST" action="/download" class="download-form">
+                            <input type="hidden" name="url" value="{{ url }}">
+                            <input type="hidden" name="media_url" value="{{ media.url }}">
+                            <input type="hidden" name="ext" value="{{ media.ext }}">
+                            <input type="hidden" name="title" value="{{ media.title }}">
+                            <button type="submit" class="download-btn">
+                                <i class="fas fa-download"></i> Download High Quality
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
                 </div>
+                {% endfor %}
             </div>
         </div>
         {% endif %}
     </div>
 
-    <!-- Download Modal -->
-    <div class="modal fade" id="downloadModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-cloud-download-alt me-2"></i>Download in Progress
-                    </h5>
-                </div>
-                <div class="modal-body">
-                    <div class="text-center mb-3">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                    <p class="text-center mb-3" id="download-status">downloading Your Video...</p>
-
-                    <!-- Progress bar container -->
-                    <div class="download-progress-container mb-3">
-                        <div class="download-progress mb-2">
-                            <div class="download-progress-bar gradient-background" style="width: 0%">
-                                <span class="progress-text">0%</span>
-                            </div>
-                        </div>
-                        <div class="download-details text-center">
-                            <span id="progress-percentage">0%</span> of <span id="file-size">0 MiB</span>
-                            at <span id="download-speed">0 KiB/s</span> •
-                            ETA: <span id="download-eta">00:00</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <footer class="footer mt-5">
-        <div class="container">
-
-            <p>© 2025 StreamSave | YouTube Video Downloader</p>
-            <p class="small">For personal use only. Please respect copyright and terms of service.</p>
-        </div>
+    <footer>
+        <p>Use this tool for personal use only. Not affiliated with Instagram.</p>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Elements and variables
-            const downloadButtons = document.querySelectorAll('.download-btn');
-            const videoUrl = document.getElementById('videoUrl')?.value;
-            const downloadModal = new bootstrap.Modal(document.getElementById('downloadModal'));
-            const videoPlayerModal = new bootstrap.Modal(document.getElementById('videoPlayerModal'));
-            const youtubeIframe = document.getElementById('youtube-player-iframe');
-            let currentEventSource = null;
-            let downloadTimeout = null;
-
-            // Tab switching functionality
-            const formatTabs = document.querySelectorAll('.format-tab');
-            const tabPanes = document.querySelectorAll('.tab-pane');
-
-            formatTabs.forEach(tab => {
-                tab.addEventListener('click', function () {
-                    formatTabs.forEach(t => t.classList.remove('active'));
-                    this.classList.add('active');
-
-                    tabPanes.forEach(pane => pane.style.display = 'none');
-                    const tabName = this.getAttribute('data-tab');
-                    document.getElementById(tabName + '-formats').style.display = 'block';
-                });
+            // Form submission
+            document.getElementById('downloadForm').addEventListener('submit', function () {
+                document.getElementById('loadingIndicator').style.display = 'block';
             });
 
-            // Download button handlers with improved error handling
-            downloadButtons.forEach(button => {
-                button.addEventListener('click', async function () {
-                    if (!videoUrl) {
-                        showToast('No video URL found', 'error');
-                        return;
-                    }
-
-                    const formatId = this.getAttribute('data-format');
-                    const downloadType = this.getAttribute('data-type');
-
-                    // Show loading state on button
-                    const originalContent = this.innerHTML;
-                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                    this.disabled = true;
-
-                    try {
-                        // Reset modal state
-                        resetDownloadModal();
-
-                        // Show download modal
-                        downloadModal.show();
-
-                        // Start download process
-                        await startDownloadProcess(videoUrl, formatId, downloadType);
-                    } catch (error) {
-                        console.error('Download error:', error);
-                        updateDownloadStatus(`Error: ${error.message || 'Download failed'}`, true);
-                        showToast('Download failed. Please try again.', 'error');
-                    } finally {
-                        // Restore button state
-                        this.innerHTML = originalContent;
-                        this.disabled = false;
-                    }
-                });
-            });
-
-            // Video player modal functionality
-            const playButtonOverlay = document.querySelector('.play-button-overlay');
-            if (playButtonOverlay && youtubeIframe) {
-                playButtonOverlay.addEventListener('click', function () {
-                    const videoId = extractVideoId(videoUrl);
-                    if (videoId) {
-                        youtubeIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
-                        videoPlayerModal.show();
-                    }
-                });
-
-                videoPlayerModal._element.addEventListener('hidden.bs.modal', function () {
-                    // Pause video when modal is closed
-                    youtubeIframe.src = '';
-                });
+            // Auto-select URL when page loads if there's an error
+            const urlInput = document.querySelector('input[name="url"]');
+            if (urlInput && '{{ error }}' !== '') {
+                urlInput.select();
             }
 
-            // Form submission handler with improved UX
-            const searchForm = document.getElementById('searchForm');
-            if (searchForm) {
-                searchForm.addEventListener('submit', function (e) {
-                    const urlInput = this.querySelector('input[name="url"]');
-                    const submitBtn = this.querySelector('button[type="submit"]');
+            // Initialize custom video players
+            const videos = document.querySelectorAll('.custom-video-player');
+            videos.forEach(video => {
+                const videoId = video.getAttribute('data-video-id');
+                const playBtn = document.querySelector(`.play-btn[data-video-id="${videoId}"]`);
+                const toggleBtn = document.querySelector(`.toggle-play[data-video-id="${videoId}"]`);
+                const progress = document.querySelector(`.progress[data-video-id="${videoId}"]`);
+                const progressBar = progress.parentElement;
+                const timeDisplay = progressBar.nextElementSibling;
 
-                    if (!urlInput.value.trim()) {
-                        e.preventDefault();
-                        urlInput.focus();
-                        showToast('Please enter a YouTube URL', 'error');
-                        return;
-                    }
-
-                    if (submitBtn) {
-                        const originalText = submitBtn.innerHTML;
-                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
-                        submitBtn.disabled = true;
-
-                        // Re-enable button if form submission takes too long
-                        downloadTimeout = setTimeout(() => {
-                            submitBtn.innerHTML = originalText;
-                            submitBtn.disabled = false;
-                        }, 15000);
-                    }
-                });
-            }
-
-            // Add hover effects for cards
-            const hoverCards = document.querySelectorAll('.hover-lift');
-            hoverCards.forEach(card => {
-                card.addEventListener('mouseenter', function () {
-                    this.style.transform = 'translateY(-5px)';
-                    this.style.transition = 'transform 0.2s ease';
-                });
-                card.addEventListener('mouseleave', function () {
-                    this.style.transform = 'translateY(0)';
-                });
-            });
-
-            // Helper functions with improved implementations
-            function extractVideoId(url) {
-                if (!url) return null;
-                const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-                const match = url.match(regExp);
-                return (match && match[2].length === 11) ? match[2] : null;
-            }
-
-            function resetDownloadModal() {
-                clearTimeout(downloadTimeout);
-
-                const progressBar = document.querySelector('.download-progress-bar');
-                const progressText = document.querySelector('.progress-text');
-                const statusText = document.getElementById('download-status');
-                const progressPercentage = document.getElementById('progress-percentage');
-                const fileSize = document.getElementById('file-size');
-                const downloadSpeed = document.getElementById('download-speed');
-                const downloadEta = document.getElementById('download-eta');
-                const spinner = document.querySelector('.spinner-border');
-
-                // Close any existing SSE connection
-                if (currentEventSource) {
-                    currentEventSource.close();
-                    currentEventSource = null;
-                }
-
-                // Reset UI elements
-                progressBar.style.width = '0%';
-                progressBar.classList.remove('bg-danger', 'bg-success');
-                progressText.textContent = '0%';
-                statusText.textContent = 'Preparing download...';
-                progressPercentage.textContent = '0%';
-                fileSize.textContent = '0 MiB';
-                downloadSpeed.textContent = '0 KiB/s';
-                downloadEta.textContent = '00:00';
-                spinner.style.display = 'block';
-            }
-
-            async function startDownloadProcess(url, formatId, downloadType) {
-                try {
-                    const response = await fetch('/download', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify({
-                            url: url,
-                            format_id: formatId,
-                            type: downloadType
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (!response.ok) {
-                        if (data.error && data.error.includes('Sign in')) {
-                            showToast('Authentication required. Please try again in a few minutes.', 'error');
+                // Play button in the middle of the video
+                if (playBtn) {
+                    playBtn.addEventListener('click', function () {
+                        if (video.paused) {
+                            video.play();
+                            playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                            toggleBtn.innerHTML = '<i class="fas fa-pause"></i>';
                         } else {
-                            throw new Error(data.error || 'Failed to start download');
+                            video.pause();
+                            playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                            toggleBtn.innerHTML = '<i class="fas fa-play"></i>';
                         }
-                        return;
+                    });
+                }
+
+                // Toggle play button in the controls
+                if (toggleBtn) {
+                    toggleBtn.addEventListener('click', function () {
+                        if (video.paused) {
+                            video.play();
+                            playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                            toggleBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                        } else {
+                            video.pause();
+                            playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                            toggleBtn.innerHTML = '<i class="fas fa-play"></i>';
+                        }
+                    });
+                }
+
+                // Progress bar functionality
+                video.addEventListener('timeupdate', function () {
+                    const percent = (video.currentTime / video.duration) * 100;
+                    progress.style.width = percent + '%';
+
+                    // Update time display
+                    const currentMinutes = Math.floor(video.currentTime / 60);
+                    const currentSeconds = Math.floor(video.currentTime % 60);
+                    const formattedTime = `${currentMinutes.toString().padStart(2, '0')}:${currentSeconds.toString().padStart(2, '0')}`;
+                    timeDisplay.textContent = formattedTime;
+                });
+
+                // Click on progress bar to seek
+                progressBar.addEventListener('click', function (e) {
+                    const pos = (e.pageX - progressBar.getBoundingClientRect().left) / progressBar.offsetWidth;
+                    video.currentTime = pos * video.duration;
+                });
+
+                // Show play button on video end
+                video.addEventListener('ended', function () {
+                    playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                    toggleBtn.innerHTML = '<i class="fas fa-play"></i>';
+                    progress.style.width = '0%';
+                });
+
+                // Hide controls when video is playing after a delay
+                let timeout;
+                const videoContainer = video.closest('.video-container');
+
+                videoContainer.addEventListener('mousemove', function () {
+                    const videoControls = videoContainer.querySelector('.video-controls');
+                    videoControls.style.opacity = '1';
+                    clearTimeout(timeout);
+
+                    if (!video.paused) {
+                        timeout = setTimeout(function () {
+                            videoControls.style.opacity = '0';
+                        }, 2000);
                     }
+                });
 
-                    setupProgressTracking(data.download_id, downloadType);
-                } catch (error) {
-                    console.error('Download start error:', error);
-                    updateDownloadStatus(error.message, true);
-                    showToast('Download failed: ' + error.message, 'error');
-                }
-            }
+                videoContainer.addEventListener('mouseleave', function () {
+                    if (!video.paused) {
+                        const videoControls = videoContainer.querySelector('.video-controls');
+                        videoControls.style.opacity = '0';
+                    }
+                });
+            });
 
-            function setupProgressTracking(downloadId, downloadType) {
-                const progressBar = document.querySelector('.download-progress-bar');
-                const progressText = document.querySelector('.progress-text');
-                const statusText = document.getElementById('download-status');
-                const progressPercentage = document.getElementById('progress-percentage');
-                const fileSize = document.getElementById('file-size');
-                const downloadSpeed = document.getElementById('download-speed');
-                const downloadEta = document.getElementById('download-eta');
-                const spinner = document.querySelector('.spinner-border');
+            // 3D tilt effect for cards
+            const cards = document.querySelectorAll('.media-card');
+            cards.forEach(card => {
+                card.addEventListener('mousemove', function (e) {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left; // x position within the element
+                    const y = e.clientY - rect.top;  // y position within the element
 
-                // Close any existing connection
-                if (currentEventSource) {
-                    currentEventSource.close();
-                }
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
 
-                currentEventSource = new EventSource(`/download-progress/${downloadId}`);
+                    const deltaX = (x - centerX) / centerX * 5; // Max 5 degrees
+                    const deltaY = (y - centerY) / centerY * 5; // Max 5 degrees
 
-                currentEventSource.onmessage = function (event) {
-                    try {
-                        const progressData = JSON.parse(event.data);
-                        console.debug('Progress update:', progressData);
+                    card.style.transform = `rotateY(${deltaX}deg) rotateX(${-deltaY}deg) translateZ(10px)`;
+                });
 
-                        // Update progress
-                        if (progressData.progress !== undefined) {
-                            const progressValue = Math.min(100, Math.max(0,
-                                typeof progressData.progress === 'string' ?
-                                    parseFloat(progressData.progress.replace('%', '')) :
-                                    progressData.progress
-                            ));
+                card.addEventListener('mouseleave', function () {
+                    card.style.transform = 'rotateY(0deg) rotateX(0deg) translateZ(0)';
+                });
+            });
 
-                            const roundedValue = Math.round(progressValue);
-                            progressBar.style.width = `${roundedValue}%`;
-                            progressText.textContent = `${roundedValue}%`;
-                            progressPercentage.textContent = `${roundedValue}%`;
-                        }
+            // Lazy load images/videos
+            const mediaItems = document.querySelectorAll('.media-preview, .custom-video-player');
+            const options = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.1
+            };
 
-                        // Update status
-                        if (progressData.status) {
-                            switch (progressData.status) {
-                                case 'downloading':
-                                    statusText.textContent = downloadType === 'audio' ?
-                                        'Downloading audio...' : 'Downloading video...';
-                                    if (progressData.speed) downloadSpeed.textContent = progressData.speed;
-                                    if (progressData.eta) downloadEta.textContent = progressData.eta;
-                                    if (progressData.filesize) fileSize.textContent = progressData.filesize;
-                                    break;
-
-                                case 'processing':
-                                    statusText.textContent = downloadType === 'audio' ?
-                                        'Converting to MP3...' : 'Processing video...';
-                                    progressBar.style.width = '100%';
-                                    progressText.textContent = '100%';
-                                    progressPercentage.textContent = '100%';
-                                    downloadSpeed.textContent = 'Processing...';
-                                    downloadEta.textContent = 'Almost done';
-                                    break;
-
-                                case 'complete':
-                                    statusText.textContent = 'Download complete!';
-                                    progressBar.classList.add('bg-success');
-                                    spinner.style.display = 'none';
-                                    clearTimeout(downloadTimeout);
-
-                                    // Automatically trigger download after short delay
-                                    setTimeout(() => {
-                                        if (progressData.filename) {
-                                            window.location.href = `/get-file/${downloadId}`;
-                                        }
-                                        downloadModal.hide();
-                                    }, 1000);
-
-                                    if (currentEventSource) {
-                                        currentEventSource.close();
-                                    }
-                                    break;
-
-                                case 'error':
-                                    updateDownloadStatus(`Error: ${progressData.error || 'Download failed'}`, true);
-                                    clearTimeout(downloadTimeout);
-                                    break;
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const media = entry.target;
+                        if (media.tagName === 'IMG') {
+                            const src = media.getAttribute('src');
+                            if (src) {
+                                media.parentElement.classList.remove('shimmer');
                             }
                         }
-                    } catch (parseError) {
-                        console.error('Error parsing progress data:', parseError);
+                        observer.unobserve(media);
                     }
-                };
+                });
+            }, options);
 
-                currentEventSource.onerror = function () {
-                    updateDownloadStatus('Connection interrupted. Trying to reconnect...', false);
-                    // Attempt reconnect after delay
-                    setTimeout(() => {
-                        if (currentEventSource) {
-                            currentEventSource.close();
-                            setupProgressTracking(downloadId, downloadType);
-                        }
-                    }, 3000);
-                };
-            }
+            mediaItems.forEach(media => {
+                observer.observe(media);
+            });
 
-            function updateDownloadStatus(message, isError = false) {
-                const statusText = document.getElementById('download-status');
-                const progressBar = document.querySelector('.download-progress-bar');
-                const spinner = document.querySelector('.spinner-border');
+            // Add scroll reveal animations
+            const revealElements = document.querySelectorAll('.media-card, .alert');
 
-                statusText.textContent = message;
-                spinner.style.display = 'none';
+            function checkVisibility() {
+                revealElements.forEach(element => {
+                    const elementTop = element.getBoundingClientRect().top;
+                    const elementBottom = element.getBoundingClientRect().bottom;
+                    const isVisible = (elementTop >= 0) && (elementBottom <= window.innerHeight);
 
-                if (isError) {
-                    progressBar.classList.add('bg-danger');
-                    showToast(message, 'error');
-                }
-
-                if (currentEventSource) {
-                    currentEventSource.close();
-                    currentEventSource = null;
-                }
-            }
-
-            // Improved notification system
-            function showToast(message, type = 'info') {
-                const toastContainer = document.createElement('div');
-                toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-                toastContainer.style.zIndex = '9999';
-
-                const toast = document.createElement('div');
-                toast.className = `toast show align-items-center text-white bg-${type === 'error' ? 'danger' : 'primary'} border-0`;
-                toast.role = 'alert';
-                toast.setAttribute('aria-live', 'assertive');
-                toast.setAttribute('aria-atomic', 'true');
-
-                const toastBody = document.createElement('div');
-                toastBody.className = 'd-flex align-items-center';
-
-                const icon = document.createElement('i');
-                icon.className = type === 'error' ?
-                    'fas fa-exclamation-circle me-2' :
-                    'fas fa-info-circle me-2';
-
-                const text = document.createElement('div');
-                text.className = 'toast-body';
-                text.textContent = message;
-
-                const closeBtn = document.createElement('button');
-                closeBtn.type = 'button';
-                closeBtn.className = 'btn-close btn-close-white ms-auto me-2';
-                closeBtn.setAttribute('data-bs-dismiss', 'toast');
-                closeBtn.setAttribute('aria-label', 'Close');
-
-                toastBody.appendChild(icon);
-                toastBody.appendChild(text);
-                toastBody.appendChild(closeBtn);
-                toast.appendChild(toastBody);
-                toastContainer.appendChild(toast);
-                document.body.appendChild(toastContainer);
-
-                // Auto-remove after delay
-                setTimeout(() => {
-                    toast.classList.remove('show');
-                    setTimeout(() => {
-                        toastContainer.remove();
-                    }, 300);
-                }, 5000);
-
-                // Manual close
-                closeBtn.addEventListener('click', () => {
-                    toast.classList.remove('show');
-                    setTimeout(() => {
-                        toastContainer.remove();
-                    }, 300);
+                    if (isVisible) {
+                        element.style.opacity = '1';
+                        element.style.transform = 'translateY(0)';
+                    }
                 });
             }
 
-            // Add CSS for toast notifications
-            const toastStyles = document.createElement('style');
-            toastStyles.textContent = `
-        .toast-container {
-            min-width: 300px;
-        }
-        .toast {
-            transition: opacity 0.3s ease;
-        }
-        .toast.show {
-            opacity: 1;
-        }
-    `;
-            document.head.appendChild(toastStyles);
+            window.addEventListener('scroll', checkVisibility);
+            checkVisibility(); // Check on initial load
         });
     </script>
 </body>
