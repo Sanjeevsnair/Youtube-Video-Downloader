@@ -4,20 +4,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamSave - Download Reels & Posts</title>
-    <meta name="description" content="Download Instagram Reels, Stories, Posts, and Videos in high quality">
+    <title>StreamSave – Fast & Secure Instagram Media Downloader</title>
+    <meta name="description" content="Download high-quality Instagram content with ease! Save Reels, Stories, Posts, and Videos in full resolution. Fast, secure, and no login required. The ultimate Instagram media downloader.">
     <meta name="google-site-verification" content="jkrVKLSaLZcLdY2zcU5iLRdj5jKFbS92H3ySPmoGQm8" />
     <link rel="icon" href="/static/images/logo.png" type="image/png" sizes="48x48">
+
+    <link rel="icon" type="image/png" href="/static/images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg" />
+    <link rel="shortcut icon" href="/static/images/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png" />
+    <link rel="manifest" href="/static/images/site.webmanifest" />
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script type="application/ld+json">
         {
           "@context": "https://schema.org",
           "@type": "WebSite",
-          "name": "StreamSave - Download Reels & Posts",
+          "name": "StreamSave – Fast & Secure Instagram Media Downloader",
           "url": "https://www.streamsave.online"
         }
         </script>
-        
+
     <style>
         :root {
             --primary: #FF3A5C;
@@ -838,7 +845,7 @@
     <div class="container">
         <header>
             <h1 class="logo">StreamSave</h1>
-            <p class="tagline">Download Reels & Posts in HD Quality</p>
+            <p class="tagline">Download Reels, Stories & Posts in HD Quality</p>
         </header>
 
         <div class="input-container">
@@ -910,7 +917,7 @@
                     </div>
                     {% endif %}
                     <div class="media-info">
-                        
+
                         <form method="POST" action="/download" class="download-form">
                             <input type="hidden" name="url" value="{{ url }}">
                             <input type="hidden" name="media_url" value="{{ media.url }}">
