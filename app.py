@@ -1,6 +1,6 @@
 import random
 from bs4 import BeautifulSoup
-from flask import Flask, json, render_template, request, send_file, jsonify
+from flask import Flask, json, redirect, render_template, request, send_file, jsonify
 import requests
 import tempfile
 import os
@@ -20,6 +20,8 @@ logger = logging.getLogger("instagram_downloader")
 
 # Monkey patch the Session class to add max_redirects functionality
 original_send = requests.Session.send
+
+
 
 
 def patched_send(self, request, **kwargs):
@@ -52,6 +54,13 @@ requests.Session.send = patched_send
 
 app = Flask(__name__)
 
+
+@app.before_request
+def redirect_www_to_non_www():
+    host = request.host
+    if host.startswith("www."):
+        url = request.url.replace("://www.", "://")
+        return redirect(url, code=301)
 
 def get_content_type(url):
     if "/reel/" in url or "/reels/" in url:
@@ -521,6 +530,14 @@ def index():
 
     return render_template("index.html")
 
+@app.route("/terms-and-conditions", methods=["GET", "POST"])
+def TermsAndCondition():
+    return render_template("termsandcondition.html")
+
+# ✅ Fix: Handle GET /download gracefully to avoid 404 for crawlers
+@app.route("/download", methods=["GET"])
+def download_get_redirect():
+    return redirect("/", code=302)
 
 @app.route("/download", methods=["POST"])
 def download():
@@ -590,6 +607,7 @@ def download():
             download_name=filename,
             mimetype="video/mp4" if ext == "mp4" else "image/jpeg",
         )
+        
 
     except requests.exceptions.TooManyRedirects:
         logger.error(f"Too many redirects when downloading {media_url}")
@@ -601,12 +619,14 @@ def download():
             ),
             500,
         )
+
     except requests.exceptions.RequestException as e:
         logger.error(f"Download request error: {str(e)}")
         return jsonify({"error": f"Download failed: {str(e)}"}), 500
     except Exception as e:
         logger.error(f"Processing error: {str(e)}")
         return jsonify({"error": f"Processing error: {str(e)}"}), 500
+    
 
 
 if __name__ == "__main__":
