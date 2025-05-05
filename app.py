@@ -55,15 +55,6 @@ requests.Session.send = patched_send
 app = Flask(__name__)
 
 
-@app.before_request
-def redirect_www_to_non_www():
-    host = request.headers.get("Host", "")
-    if host.startswith("www."):
-        new_url = request.url.replace("://www.", "://", 1)
-        if new_url != request.url:
-            return redirect(new_url, code=301)
-
-
 def get_content_type(url):
     if "/reel/" in url or "/reels/" in url:
         return "reel"
