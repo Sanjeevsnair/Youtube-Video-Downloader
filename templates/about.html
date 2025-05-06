@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamSave - About Us</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #FF3A5C;
+            --secondary: #5E17EB;
+            --tertiary: #00D1FF;
+            --dark: #151515;
+            --light: #FFFFFF;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --gradient: linear-gradient(135deg, #5E17EB, #FF3A5C, #00D1FF);
+            --shadow-neon: 0 0 20px rgba(94, 23, 235, 0.4), 0 0 40px rgba(255, 58, 92, 0.2);
+            --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.15);
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --radius-sm: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', 'Segoe UI', sans-serif;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+        body {
+            background: var(--dark);
+            color: var(--light);
+            min-height: 100vh;
+            line-height: 1.6;
+            background-image:
+                radial-gradient(circle at 20% 35%, rgba(94, 23, 235, 0.15), transparent 25%),
+                radial-gradient(circle at 75% 80%, rgba(255, 58, 92, 0.1), transparent 25%),
+                radial-gradient(circle at 65% 15%, rgba(0, 209, 255, 0.1), transparent 25%);
+            background-attachment: fixed;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+            position: sticky;
+            z-index: 100;
+        }
+
+        .header-container {
+            display: flex;
+            padding-bottom: 10px;
+            padding-left: 30px;
+            max-width: 1200px;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            display: inline-flex;
+            flex-direction: row;
+            justify-content: center;
+            left: 16%;
+            transform: translateX(-50%);
+        }
+
+        .section-titles {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            display: inline-flex;
+            flex-direction: row;
+            justify-content: center;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .logotitle {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: var(--shadow-neon);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            position: relative;
+        }
+
+        .footer-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-left: 1px;
+            margin: auto 0;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: var(--shadow-neon);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            position: relative;
+        }
+
+        .footer-logo {
+            width: 7%;
+            height: auto;
+            transition: transform 0.5s ease;
+        }
+
+        .logotitle::after {
+            content: "StreamSave";
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            z-index: -1;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            opacity: 0.3;
+            filter: blur(8px);
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 25px;
+        }
+
+        nav a {
+            color: var(--light);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: var(--primary);
+        }
+
+        /* About Page Specific Styles */
+        .about-hero {
+            text-align: center;
+            margin: 50px auto;
+            max-width: 800px;
+        }
+
+        .about-hero p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+        }
+
+        .about-sections {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 60px;
+        }
+
+        .about-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius-md);
+            padding: 30px;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-soft);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .about-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .about-card-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            color: var(--light);
+            box-shadow: var(--shadow-neon);
+        }
+
+        .about-card h3 {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .about-card p {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.7;
+        }
+
+        .how-it-works {
+            margin: 80px 0;
+            text-align: center;
+        }
+
+        .steps-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 40px;
+        }
+
+        .step {
+            flex: 1;
+            min-width: 250px;
+            max-width: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background: var(--gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--light);
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-neon);
+        }
+
+        .step h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .step p {
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+        }
+
+        .step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 30px;
+            right: -40px;
+            width: 40px;
+            height: 2px;
+            background: var(--gradient);
+            opacity: 0.5;
+        }
+
+        .disclaimer-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius-md);
+            padding: 30px;
+            border: 1px solid var(--glass-border);
+            margin: 60px 0;
+        }
+
+        .disclaimer-section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .disclaimer-section h2::before {
+            content: '\f05a';
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            position: absolute;
+            left: 0;
+            top: 3px;
+            color: var(--tertiary);
+        }
+
+        .disclaimer-section p {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 15px;
+            line-height: 1.7;
+        }
+
+        .cta-section {
+            text-align: center;
+            margin: 60px 0;
+        }
+
+        .btn-primary {
+            background: var(--gradient);
+            color: var(--light);
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-neon);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(94, 23, 235, 0.4);
+        }
+
+        /* Footer */
+        footer {
+            padding: 40px 20px;
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 80px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background-color: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--light);
+        }
+
+        .footer-links a:hover::after {
+            width: 100%;
+        }
+
+        .footer-disclaimer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85rem;
+            line-height: 1.7;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .footer-disclaimer p {
+            margin-bottom: 10px;
+        }
+
+        .footer-social {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 10px;
+        }
+
+        .footer-social a {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-social a:hover {
+            color: var(--light);
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .top-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background-color: var(--primary);
+            color: var(--light);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s, background-color 0.3s;
+            z-index: 99;
+        }
+
+        .top-button:hover {
+            transform: translateY(-5px);
+            background-color: #ff6b6b;
+        }
+
+        @media (max-width: 768px) {
+            .header-container {
+                flex-direction: column;
+                gap: 15px;
+                padding: 10px 20px;
+            }
+
+            .section-title {
+                font-size: 1.3rem;
+                text-align: start;
+                left: 0;
+                transform: none;
+                display: block;
+                margin-left: 0;
+            }
+
+            .section-titles {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            display: inline-flex;
+            flex-direction: row;
+            justify-content: center;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+            .footer-title {
+                font-size: 1.5rem;
+                font-weight: 700;
+                margin-left: 10px;
+                background: var(--gradient);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                text-shadow: var(--shadow-neon);
+                transform-style: preserve-3d;
+                perspective: 1000px;
+                position: relative;
+            }
+
+            .footer-logo {
+                width: 15%;
+                height: auto;
+                transition: transform 0.5s ease;
+            }
+            nav ul {
+                gap: 15px;
+            }
+
+            .about-sections {
+                grid-template-columns: 1fr;
+            }
+
+            .about-hero p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            text-align: justify;
+        }
+
+            .steps-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .step:not(:last-child)::after {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="header-container">
+            <h2 class="logotitle">StreamSave</h2>
+            
+        </div>
+    </header>
+
+    <div class="container">
+        <h1 class="section-titles">About StreamSave </h1>
+        
+        <div class="about-hero">
+            <p>StreamSave is the most convenient way to save pictures, videos, and galleries from popular social media platforms to your computer, tablet, or mobile phone. Our service is designed to be simple, fast, and reliable, giving you easy access to media you love.</p>
+        </div>
+        
+        <div class="about-sections">
+            <div class="about-card">
+                <div class="about-card-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h3>Fast & Reliable</h3>
+                <p>We offer fast and reliable service that allows you to save media content instantly. No waiting, no complications – just quick downloads of the content you want to save.</p>
+            </div>
+            
+            <div class="about-card">
+                <div class="about-card-icon">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <h3>Cross-Platform Support</h3>
+                <p>Whether you're using a desktop computer, tablet, or mobile phone, StreamSave works seamlessly across all your devices, providing the same great experience everywhere.</p>
+            </div>
+            
+            <div class="about-card">
+                <div class="about-card-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Safe & Secure</h3>
+                <p>Your privacy and security are important to us. We don't store any media on our servers – all downloaded content is retrieved directly from the source platforms.</p>
+            </div>
+        </div>
+        
+        <div class="how-it-works">
+            <h2 class="section-title" style="margin-right: 170px;">How It Works</h2>
+            <div class="steps-container">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Copy Link</h3>
+                    <p>Find the post containing the media you want to save and copy its URL.</p>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Paste Link</h3>
+                    <p>Insert the copied link into the input field on our website.</p>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Download</h3>
+                    <p>Click the "Download" button and save the media to your device.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="disclaimer-section">
+            <h2>Important Information</h2>
+            <p>StreamSave is not affiliated with Instagram or any other social media platforms. We operate as an independent service that helps users download publicly available content for personal use.</p>
+            <p>We do not store videos, photos, or any other media on our servers. All downloaded content is located on and retrieved directly from the source platforms' servers. StreamSave merely provides a convenient interface for accessing this content.</p>
+            <p>Please use StreamSave responsibly and respect the copyright and ownership rights of content creators. Our service is intended for personal use only.</p>
+        </div>
+        
+        <div class="cta-section">
+            <h2 class="section-title">Ready to Try StreamSave?</h2>
+            <p style="max-width: 600px; margin: 0 auto 30px; color: rgba(255, 255, 255, 0.8);">Experience the easiest way to save your favorite content from social media.</p>
+            <a href="/" class="btn-primary">Try It Now</a>
+        </div>
+    </div>
+
+    <a href="#" class="top-button">
+        <i class="fas fa-arrow-up"></i>
+    </a>
+
+    <footer>
+        <div class="footer-content">
+            
+
+            <div class="footer-disclaimer">
+                <div style="display: flex; justify-content: center; margin-bottom: 30px;"><img
+                    src="https://www.streamsave.online/static/images/logo.png" class="footer-logo">
+                <h2 class="footer-title">StreamSave</h2>
+    
+            </div>
+                <p>©2025 StreamSave. All rights reserved.</p>
+            </div>
+            
+            <div class="footer-social">
+                <a href="" target="_blank" aria-label="Twitter">
+                    <i class="fab fa-twitter"></i>
+                </a>
+                <a href="" target="_blank" aria-label="GitHub">
+                    <i class="fab fa-github"></i>
+                </a>
+                <a href="" target="_blank" aria-label="Facebook">
+                    <i class="fab fa-facebook-f"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scroll to top
+        document.querySelector('.top-button').addEventListener('click', function(e) {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    </script>
+</body>
+
+</html>

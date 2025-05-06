@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamSave - Privacy Policy</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #FF3A5C;
+            --secondary: #5E17EB;
+            --tertiary: #00D1FF;
+            --dark: #151515;
+            --light: #FFFFFF;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --gradient: linear-gradient(135deg, #5E17EB, #FF3A5C, #00D1FF);
+            --shadow-neon: 0 0 20px rgba(94, 23, 235, 0.4), 0 0 40px rgba(255, 58, 92, 0.2);
+            --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.15);
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --radius-sm: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', 'Segoe UI', sans-serif;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+        body {
+            background: var(--dark);
+            color: var(--light);
+            min-height: 100vh;
+            line-height: 1.6;
+            background-image:
+                radial-gradient(circle at 20% 35%, rgba(94, 23, 235, 0.15), transparent 25%),
+                radial-gradient(circle at 75% 80%, rgba(255, 58, 92, 0.1), transparent 25%),
+                radial-gradient(circle at 65% 15%, rgba(0, 209, 255, 0.1), transparent 25%);
+            background-attachment: fixed;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            z-index: 100;
+        }
+
+        .header-container {
+            display: none;
+            padding-bottom: 10px;
+            padding-left: 30px;
+            max-width: 1200px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 30px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            display: inline-block;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .logotitle {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: var(--shadow-neon);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            position: relative;
+        }
+
+        .footer-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-left: 6px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: var(--shadow-neon);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            position: relative;
+        }
+
+        .logotitle::after {
+            content: "StreamSave";
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            z-index: -1;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            opacity: 0.3;
+            filter: blur(8px);
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 25px;
+        }
+
+        nav a {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: var(--primary);
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--light);
+        }
+
+        h2 {
+            font-size: 1.6rem;
+            margin: 2.5rem 0 1rem;
+            color: var(--light);
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            margin: 1.5rem 0 0.8rem;
+            color: var(--light);
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        ul,
+        ol {
+            margin-bottom: 1.5rem;
+            padding-left: 2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        .last-updated {
+            color: var(--text-muted);
+            font-style: italic;
+            margin-bottom: 2rem;
+        }
+
+        .section {
+            background-color: var(--bg-card);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+        }
+
+        .section:last-child {
+            margin-bottom: 4rem;
+
+        }
+
+        .contact-info {
+            background-color: rgba(52, 152, 219, 0.1);
+            border-left: 4px solid var(--secondary);
+            padding: 1rem 1.5rem;
+            margin-top: 2rem;
+            border-radius: 4px;
+        }
+
+        .contact-info a {
+            color: var(--secondary);
+            text-decoration: none;
+        }
+
+        .contact-info a:hover {
+            text-decoration: underline;
+        }
+
+        .top-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background-color: var(--primary);
+            color: var(--light);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s, background-color 0.3s;
+            z-index: 99;
+        }
+
+        .top-button:hover {
+            transform: translateY(-5px);
+            background-color: #ff6b6b;
+        }
+
+        /* Table of Contents */
+        .toc {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+        }
+
+        .toc-title {
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            color: var(--light);
+        }
+
+        .toc-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .toc-item {
+            margin-bottom: 0.7rem;
+        }
+
+        .toc-link {
+            color: var(--text);
+            text-decoration: none;
+            transition: color 0.3s;
+            display: inline-block;
+            padding: 3px 0;
+        }
+
+        .toc-link:hover {
+            color: var(--primary);
+        }
+
+        /* Footer */
+        footer {
+            padding: 40px 20px;
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 80px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background-color: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--light);
+        }
+
+        .footer-links a:hover::after {
+            width: 100%;
+        }
+
+        .footer-disclaimer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85rem;
+            line-height: 1.7;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .footer-disclaimer p {
+            margin-bottom: 10px;
+        }
+
+        .footer-social {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 10px;
+        }
+
+        .footer-social a {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-social a:hover {
+            color: var(--light);
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .faq-answer {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .header-container {
+                flex-direction: column;
+                gap: 15px;
+                padding: 10px 20px;
+            }
+
+            .section-title {
+                font-size: 1.3rem;
+                text-align: start;
+                left: 45%;
+                display: flex;
+                max-width: 300px;
+            }
+
+            .footer-title {
+                font-size: 1.3rem;
+                top: 17px;
+            }
+
+            nav ul {
+                gap: 15px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .toc {
+                padding: 1rem;
+            }
+
+            .footer-links {
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="header-container">
+            <h2 class="logotitle">StreamSave</h2>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1 class="section-title">Privacy Policy</h1>
+        <div class="last-updated">Last updated: February 06, 2025</div>
+
+        <p class="faq-answer">At StreamSave, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website <a href="https://www.streamsave.online">https://www.streamsave.online</a>. Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the site.</p>
+
+        <div class="toc">
+            <h2 class="toc-title">Table of Contents</h2>
+            <ul class="toc-list">
+                <li class="toc-item"><a href="#collection" class="toc-link">Information We Collect</a></li>
+                <li class="toc-item"><a href="#use" class="toc-link">How We Use Your Information</a></li>
+                <li class="toc-item"><a href="#disclosure" class="toc-link">Disclosure of Your Information</a></li>
+                <li class="toc-item"><a href="#tracking" class="toc-link">Tracking Technologies</a></li>
+                <li class="toc-item"><a href="#third-party" class="toc-link">Third-Party Websites</a></li>
+                <li class="toc-item"><a href="#security" class="toc-link">Security of Your Information</a></li>
+                <li class="toc-item"><a href="#policy-children" class="toc-link">Policy for Children</a></li>
+                <li class="toc-item"><a href="#controls" class="toc-link">Controls for Do-Not-Track Features</a></li>
+                <li class="toc-item"><a href="#california" class="toc-link">California Privacy Rights</a></li>
+                <li class="toc-item"><a href="#gdpr" class="toc-link">GDPR Data Protection Rights</a></li>
+                <li class="toc-item"><a href="#changes" class="toc-link">Changes to This Privacy Policy</a></li>
+                <li class="toc-item"><a href="#contact" class="toc-link">Contact Us</a></li>
+            </ul>
+        </div>
+
+        <div id="collection" class="section">
+            <h2 class="section-title">Information We Collect</h2>
+            <p class="faq-answer">We collect information about you in a variety of ways. The information we may collect on the Site includes:</p>
+
+            <h3>Personal Data</h3>
+            <p class="faq-answer">Personally identifiable information, such as your name, email address, and telephone number, and demographic information, such as your age, gender, hometown, and interests, that you voluntarily give to us when you register with the Site or when you choose to participate in various activities related to the Site.</p>
+
+            <h3>Derivative Data</h3>
+            <p class="faq-answer">Information our servers automatically collect when you access the Site, such as your IP address, your browser type, your operating system, your access times, and the pages you have viewed directly before and after accessing the Site.</p>
+
+            <h3>Financial Data</h3>
+            <p class="faq-answer">Financial information, such as data related to your payment method (e.g. valid credit card number, card brand, expiration date) that we may collect when you purchase, order, return, exchange, or request information about our services from the Site.</p>
+
+            <h3>Mobile Device Data</h3>
+            <p class="faq-answer">Device information, such as your mobile device ID, model, and manufacturer, and information about the location of your device, if you access the Site from a mobile device.</p>
+
+            <h3>Third-Party Data</h3>
+            <p class="faq-answer">Information from third parties, such as personal information or network friends, if you connect your account to the third party and grant the Site permission to access this information.</p>
+        </div>
+
+        <div id="use" class="section">
+            <h2 class="section-title">How We Use Your Information</h2>
+            <p class="faq-answer">Having accurate information about you permits us to provide you with a smooth, efficient, and customized experience. Specifically, we may use information collected about you via the Site to:</p>
+
+            <ul>
+                <li>Create and manage your account.</li>
+                <li>Deliver targeted advertising, coupons, newsletters, and other information regarding promotions and the Site to you.</li>
+                <li>Email you regarding your account or order.</li>
+                <li>Enable user-to-user communications.</li>
+                <li>Fulfill and manage purchases, orders, payments, and other transactions related to the Site.</li>
+                <li>Generate a personal profile about you to make future visits to the Site more personalized.</li>
+                <li>Increase the efficiency and operation of the Site.</li>
+                <li>Monitor and analyze usage and trends to improve your experience with the Site.</li>
+                <li>Notify you of updates to the Site.</li>
+                <li>Offer new products, services, and/or recommendations to you.</li>
+                <li>Perform other business activities as needed.</li>
+                <li>Prevent fraudulent transactions, monitor against theft, and protect against criminal activity.</li>
+                <li>Process payments and refunds.</li>
+                <li>Request feedback and contact you about your use of the Site.</li>
+                <li>Resolve disputes and troubleshoot problems.</li>
+                <li>Respond to product and customer service requests.</li>
+                <li>Send you a newsletter.</li>
+                <li>Solicit support for the Site.</li>
+            </ul>
+        </div>
+
+        <div id="disclosure" class="section">
+            <h2 class="section-title">Disclosure of Your Information</h2>
+            <p class="faq-answer">We may share information we have collected about you in certain situations. Your information may be disclosed as follows:</p>
+
+            <h3>By Law or to Protect Rights</h3>
+            <p class="faq-answer">If we believe the release of information about you is necessary to respond to legal process, to investigate or remedy potential violations of our policies, or to protect the rights, property, and safety of others, we may share your information as permitted or required by any applicable law, rule, or regulation.</p>
+
+            <h3>Third-Party Service Providers</h3>
+            <p class="faq-answer">We may share your information with third parties that perform services for us or on our behalf, including payment processing, data analysis, email delivery, hosting services, customer service, and marketing assistance.</p>
+
+            <h3>Marketing Communications</h3>
+            <p class="faq-answer">With your consent, or with an opportunity for you to withdraw consent, we may share your information with third parties for marketing purposes, as permitted by law.</p>
+
+            <h3>Business Transfers</h3>
+            <p class="faq-answer">We may share or transfer your information in connection with, or during negotiations of, any merger, sale of company assets, financing, or acquisition of all or a portion of our business to another company.</p>
+
+            <h3>Affiliates</h3>
+            <p class="faq-answer">We may share your information with our affiliates, in which case we will require those affiliates to honor this Privacy Policy. Affiliates include our parent company and any subsidiaries, joint venture partners or other companies that we control or that are under common control with us.</p>
+
+            <h3>Business Partners</h3>
+            <p class="faq-answer">We may share your information with our business partners to offer you certain products, services or promotions.</p>
+        </div>
+
+        <div id="tracking" class="section">
+            <h2 class="section-title">Tracking Technologies</h2>
+            <p class="faq-answer">We may use cookies, web beacons, tracking pixels, and other tracking technologies on the Site to help customize the Site and improve your experience. For more information on how we use cookies, please refer to our Cookie Policy posted on the Site, which is incorporated into this Privacy Policy.</p>
+
+            <h3>Cookies and Web Beacons</h3>
+            <p class="faq-answer">We may use cookies, web beacons, tracking pixels, and other tracking technologies on the Site to help customize the Site and improve your experience. When you access the Site, your personal information is not collected through the use of tracking technology.</p>
+
+            <h3>Website Analytics</h3>
+            <p class="faq-answer">We may also partner with selected third-party vendors, such as Google Analytics, to allow tracking technologies and remarketing services on the Site through the use of first party cookies and third-party cookies, to, among other things, analyze and track users' use of the Site, determine the popularity of certain content and better understand online activity.</p>
+        </div>
+
+        <div id="third-party" class="section">
+            <h2 class="section-title">Third-Party Websites</h2>
+            <p class="faq-answer">The Site may contain links to third-party websites and applications of interest, including advertisements and external services, that are not affiliated with us. Once you have used these links to leave the Site, any information you provide to these third parties is not covered by this Privacy Policy, and we cannot guarantee the safety and privacy of your information.</p>
+
+            <p class="faq-answer">We are not responsible for the content or privacy and security practices and policies of any third parties, including other sites, services or applications that may be linked to or from the Site. You should review the policies of such third parties and contact them directly to respond to your questions.</p>
+        </div>
+
+        <div id="security" class="section">
+            <h2 class="section-title">Security of Your Information</h2>
+            <p class="faq-answer">We use administrative, technical, and physical security measures to help protect your personal information. While we have taken reasonable steps to secure the personal information you provide to us, please be aware that despite our efforts, no security measures are perfect or impenetrable, and no method of data transmission can be guaranteed against any interception or other type of misuse.</p>
+
+            <p class="faq-answer">If we learn of a security systems breach, we will inform you and the authorities of the occurrence of the breach in accordance with applicable law.</p>
+        </div>
+
+        <div id="policy-children" class="section">
+            <h2 class="section-title">Policy for Children</h2>
+            <p class="faq-answer">We do not knowingly solicit information from or market to children under the age of 13. If you become aware of any data we have collected from children under age 13, please contact us using the contact information provided below.</p>
+        </div>
+
+        <div id="controls" class="section">
+            <h2 class="section-title">Controls for Do-Not-Track Features</h2>
+            <p class="faq-answer">Most web browsers and some mobile operating systems include a Do-Not-Track ("DNT") feature or setting you can activate to signal your privacy preference not to have data about your online browsing activities monitored and collected. No uniform technology standard for recognizing and implementing DNT signals has been finalized.</p>
+
+            <p class="faq-answer">As such, we do not currently respond to DNT browser signals or any other mechanism that automatically communicates your choice not to be tracked online. If a standard for online tracking is adopted that we must follow in the future, we will inform you about that practice in a revised version of this Privacy Policy.</p>
+        </div>
+
+        <div id="california" class="section">
+            <h2 class="section-title">California Privacy Rights</h2>
+            <p class="faq-answer">California Civil Code Section 1798.83, also known as the "Shine The Light" law, permits our users who are California residents to request and obtain from us, once a year and free of charge, information about categories of personal information (if any) we disclosed to third parties for direct marketing purposes and the names and addresses of all third parties with which we shared personal information in the immediately preceding calendar year.</p>
+
+            <p class="faq-answer">If you are a California resident and would like to make such a request, please submit your request in writing to us using the contact information provided below.</p>
+        </div>
+
+        <div id="gdpr" class="section">
+            <h2 class="section-title">GDPR Data Protection Rights</h2>
+            <p class="faq-answer">If you are a resident of the European Economic Area (EEA), you have certain data protection rights. We aim to take reasonable steps to allow you to correct, amend, delete, or limit the use of your Personal Data.</p>
+
+            <p class="faq-answer">If you wish to be informed what Personal Data we hold about you and if you want it to be removed from our systems, please contact us.</p>
+
+            <p class="faq-answer">In certain circumstances, you have the following data protection rights:</p>
+            <ul>
+                <li><strong>The right to access, update or to delete</strong> the information we have on you.</li>
+                <li><strong>The right of rectification.</strong> You have the right to have your information rectified if that information is inaccurate or incomplete.</li>
+                <li><strong>The right to object.</strong> You have the right to object to our processing of your Personal Data.</li>
+                <li><strong>The right of restriction.</strong> You have the right to request that we restrict the processing of your personal information.</li>
+                <li><strong>The right to data portability.</strong> You have the right to be provided with a copy of the information we have on you in a structured, machine-readable and commonly used format.</li>
+                <li><strong>The right to withdraw consent.</strong> You also have the right to withdraw your consent at any time where we relied on your consent to process your personal information.</li>
+            </ul>
+
+            <p class="faq-answer">Please note that we may ask you to verify your identity before responding to such requests.</p>
+        </div>
+
+        <div id="changes" class="section">
+            <h2 class="section-title">Changes to This Privacy Policy</h2>
+            <p class="faq-answer">We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date at the top of this Privacy Policy.</p>
+
+            <p class="faq-answer">You are advised to review this Privacy Policy periodically for any changes. Changes to this Privacy Policy are effective when they are posted on this page.</p>
+        </div>
+
+        <div id="contact" class="section">
+            <h2 class="section-title">Contact Us</h2>
+            <p class="faq-answer">If you have any questions about this Privacy Policy, You can contact us:</p>
+
+            <div class="contact-info">
+                <p class="faq-answer">By email: <a href="mailto:streamsave.online@gmail.com">streamsave.online@gmail.com</a></p>
+                <p class="faq-answer">By visiting this page on our website: <a href="https://www.streamsave.online/contact">https://www.streamsave.online/contact</a></p>
+            </div>
+        </div>
+    </div>
+
+    <a href="#" class="top-button">
+        <i class="fas fa-arrow-up"></i>
+    </a>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-disclaimer">
+                <div style="display: flex; justify-content: center; margin-bottom: 30px;"><img
+                        src="https://www.streamsave.online/static/images/logo.png" style="width: 10%;
+                    height: 10%;
+                    transition: transform 0.5s ease; margin-top: auto;">
+                    <h2 class="footer-title">StreamSave</h2>
+                </div>
+                <p class="faq-answer">©2025 StreamSave. All rights reserved.</p>
+            </div>
+            <div class="footer-social">
+                <a href="" target="_blank" aria-label="Twitter">
+                    <i class="fab fa-twitter"></i>
+                </a>
+                <a href="" target="_blank" aria-label="GitHub">
+                    <i class="fab fa-github"></i>
+                </a>
+                <a href="" target="_blank" aria-label="Facebook">
+                    <i class="fab fa-facebook-f"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>

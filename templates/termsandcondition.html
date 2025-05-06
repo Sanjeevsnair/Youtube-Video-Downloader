@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,73 +8,119 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary: #FF5555;
-            --secondary: #3498db;
-            --light: #ffffff;
-            --dark: #121212;
-            --text: #e0e0e0;
-            --text-muted: #aaaaaa;
-            --bg: #121212;
-            --bg-card: #1e1e1e;
-            --border: rgba(255, 255, 255, 0.1);
+            --primary: #FF3A5C;
+            --secondary: #5E17EB;
+            --tertiary: #00D1FF;
+            --dark: #151515;
+            --light: #FFFFFF;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --gradient: linear-gradient(135deg, #5E17EB, #FF3A5C, #00D1FF);
+            --shadow-neon: 0 0 20px rgba(94, 23, 235, 0.4), 0 0 40px rgba(255, 58, 92, 0.2);
+            --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.15);
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --radius-sm: 12px;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            font-family: 'Poppins', 'Segoe UI', sans-serif;
         }
 
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
+            background: var(--dark);
+            color: var(--light);
+            min-height: 100vh;
             line-height: 1.6;
-            padding: 0;
-            margin: 0;
+            background-image:
+                radial-gradient(circle at 20% 35%, rgba(94, 23, 235, 0.15), transparent 25%),
+                radial-gradient(circle at 75% 80%, rgba(255, 58, 92, 0.1), transparent 25%),
+                radial-gradient(circle at 65% 15%, rgba(0, 209, 255, 0.1), transparent 25%);
+            background-attachment: fixed;
+            overflow-x: hidden;
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 40px 20px;
         }
 
         header {
-            background-color: rgba(0, 0, 0, 0.4);
+            background: var(--glass-bg);
             backdrop-filter: blur(10px);
-            padding: 20px 0;
             border-bottom: 1px solid var(--border);
             position: sticky;
-            top: 0;
             z-index: 100;
         }
 
         .header-container {
+            display: none;
+            padding-bottom: 10px;
+            padding-left: 30px;
             max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .logo {
-            font-size: 1.8rem;
+        .section-title {
+            font-size: 2rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 30px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            display: inline-block;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .logotitle {
+            font-size: 2.5rem;
             font-weight: 700;
-            color: var(--light);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            margin-bottom: 10px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: var(--shadow-neon);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            position: relative;
         }
 
-        .logo span {
-            color: var(--primary);
-        }
-
-        .logo i {
+        .footer-title {
             font-size: 1.5rem;
+            font-weight: 700;
+            margin-left: 6px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: var(--shadow-neon);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            position: relative;
+        }
+
+        .logotitle::after {
+            content: "StreamSave";
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            z-index: -1;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            opacity: 0.3;
+            filter: blur(8px);
         }
 
         nav ul {
@@ -117,7 +164,8 @@
             margin-bottom: 1rem;
         }
 
-        ul, ol {
+        ul,
+        ol {
             margin-bottom: 1.5rem;
             padding-left: 2rem;
         }
@@ -143,6 +191,7 @@
 
         .section:last-child {
             margin-bottom: 4rem;
+
         }
 
         .contact-info {
@@ -313,12 +362,30 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
 
+        .faq-answer {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+        }
+
         @media (max-width: 768px) {
             .header-container {
                 flex-direction: column;
                 gap: 15px;
                 padding: 10px 20px;
             }
+
+            .section-title {
+                font-size: 1.3rem;
+                text-align: start;
+                left: 45%;
+                display: flex;
+                max-width: 300px;
+            }
+
+            .footer-title {
+            font-size: 1.3rem;
+            top: 17px;
+        }
 
             nav ul {
                 gap: 15px;
@@ -342,21 +409,20 @@
         }
     </style>
 </head>
+
 <body>
     <header>
         <div class="header-container">
-            <a href="/" class="logo">
-                <i class="fas fa-download"></i> Stream<span>Save</span>
-            </a>
-            
+            <h2 class="logotitle">StreamSave</h2>
+
         </div>
     </header>
 
     <div class="container">
-        <h1>Terms and Conditions</h1>
+        <h1 class="section-title">Terms and Conditions</h1>
         <div class="last-updated">Last updated: February 06, 2025</div>
-        
-        <p>Please read these terms and conditions carefully before using Our Service.</p>
+
+        <p class="faq-answer">Please read these terms and conditions carefully before using Our Service.</p>
 
         <div class="toc">
             <h2 class="toc-title">Table of Contents</h2>
@@ -379,121 +445,221 @@
         </div>
 
         <div id="interpretation" class="section">
-            <h2>Interpretation and Definitions</h2>
-            
+            <h2 class="section-title">Interpretation and Definitions</h2>
+
             <h3>Interpretation</h3>
-            <p>The words of which the initial letter is capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.</p>
-            
+            <p class="faq-answer">The words of which the initial letter is capitalized have meanings defined under the
+                following
+                conditions. The following definitions shall have the same meaning regardless of whether they appear in
+                singular or in plural.</p>
+
             <h3>Definitions</h3>
-            <p>For the purposes of these Terms and Conditions:</p>
+            <p class="faq-answer">For the purposes of these Terms and Conditions:</p>
             <ul>
-                <li><strong>Affiliate</strong> means an entity that controls, is controlled by or is under common control with a party, where "control" means ownership of 50% or more of the shares, equity interest or other securities entitled to vote for election of directors or other managing authority.</li>
+                <li><strong>Affiliate</strong> means an entity that controls, is controlled by or is under common
+                    control with a party, where "control" means ownership of 50% or more of the shares, equity interest
+                    or other securities entitled to vote for election of directors or other managing authority.</li>
                 <li><strong>Country</strong> refers to: Alaska, United States</li>
-                <li><strong>Company</strong> (referred to as either "the Company", "We", "Us" or "Our" in this Agreement) refers to StreamSave.</li>
-                <li><strong>Device</strong> means any device that can access the Service such as a computer, a cellphone or a digital tablet.</li>
+                <li><strong>Company</strong> (referred to as either "the Company", "We", "Us" or "Our" in this
+                    Agreement) refers to StreamSave.</li>
+                <li><strong>Device</strong> means any device that can access the Service such as a computer, a cellphone
+                    or a digital tablet.</li>
                 <li><strong>Service</strong> refers to the Website.</li>
-                <li><strong>Terms and Conditions</strong> (also referred as "Terms") mean these Terms and Conditions that form the entire agreement between You and the Company regarding the use of the Service.</li>
-                <li><strong>Third-party Social Media Service</strong> means any services or content (including data, information, products or services) provided by a third-party that may be displayed, included or made available by the Service.</li>
+                <li><strong>Terms and Conditions</strong> (also referred as "Terms") mean these Terms and Conditions
+                    that form the entire agreement between You and the Company regarding the use of the Service.</li>
+                <li><strong>Third-party Social Media Service</strong> means any services or content (including data,
+                    information, products or services) provided by a third-party that may be displayed, included or made
+                    available by the Service.</li>
                 <li><strong>Website</strong> refers to StreamSave, accessible from https://streamsave.com/</li>
-                <li><strong>You</strong> means the individual accessing or using the Service, or the company, or other legal entity on behalf of which such individual is accessing or using the Service, as applicable.</li>
+                <li><strong>You</strong> means the individual accessing or using the Service, or the company, or other
+                    legal entity on behalf of which such individual is accessing or using the Service, as applicable.
+                </li>
             </ul>
         </div>
 
         <div id="acknowledgment" class="section">
-            <h2>Acknowledgment</h2>
-            <p>These are the Terms and Conditions governing the use of this Service and the agreement that operates between You and the Company. These Terms and Conditions set out the rights and obligations of all users regarding the use of the Service.</p>
-            
-            <p>Your access to and use of the Service is conditioned on Your acceptance of and compliance with these Terms and Conditions. These Terms and Conditions apply to all visitors, users and others who access or use the Service.</p>
-            
-            <p>By accessing or using the Service You agree to be bound by these Terms and Conditions. If You disagree with any part of these Terms and Conditions then You may not access the Service.</p>
-            
-            <p>You represent that you are over the age of 18. The Company does not permit those under 18 to use the Service.</p>
-            
-            <p>Your access to and use of the Service is also conditioned on Your acceptance of and compliance with the Privacy Policy of the Company. Our Privacy Policy describes Our policies and procedures on the collection, use and disclosure of Your personal information when You use the Application or the Website and tells You about Your privacy rights and how the law protects You. Please read Our Privacy Policy carefully before using Our Service.</p>
+            <h2 class="section-title">Acknowledgment</h2>
+            <p class="faq-answer">These are the Terms and Conditions governing the use of this Service and the agreement
+                that operates
+                between You and the Company. These Terms and Conditions set out the rights and obligations of all users
+                regarding the use of the Service.</p>
+
+            <p class="faq-answer">Your access to and use of the Service is conditioned on Your acceptance of and
+                compliance with these
+                Terms and Conditions. These Terms and Conditions apply to all visitors, users and others who access or
+                use the Service.</p>
+
+            <p class="faq-answer">By accessing or using the Service You agree to be bound by these Terms and Conditions.
+                If You disagree
+                with any part of these Terms and Conditions then You may not access the Service.</p>
+
+            <p class="faq-answer">You represent that you are over the age of 18. The Company does not permit those under
+                18 to use the
+                Service.</p>
+
+            <p class="faq-answer">Your access to and use of the Service is also conditioned on Your acceptance of and
+                compliance with the
+                Privacy Policy of the Company. Our Privacy Policy describes Our policies and procedures on the
+                collection, use and disclosure of Your personal information when You use the Application or the Website
+                and tells You about Your privacy rights and how the law protects You. Please read Our Privacy Policy
+                carefully before using Our Service.</p>
         </div>
 
         <div id="links" class="section">
-            <h2>Links to Other Websites</h2>
-            <p>Our Service may contain links to third-party web sites or services that are not owned or controlled by the Company.</p>
-            
-            <p>The Company has no control over, and assumes no responsibility for, the content, privacy policies, or practices of any third party web sites or services. You further acknowledge and agree that the Company shall not be responsible or liable, directly or indirectly, for any damage or loss caused or alleged to be caused by or in connection with the use of or reliance on any such content, goods or services available on or through any such web sites or services.</p>
-            
-            <p>We strongly advise You to read the terms and conditions and privacy policies of any third-party web sites or services that You visit.</p>
+            <h2 class="section-title">Links to Other Websites</h2>
+            <p class="faq-answer">Our Service may contain links to third-party web sites or services that are not owned
+                or controlled by
+                the Company.</p>
+
+            <p class="faq-answer">The Company has no control over, and assumes no responsibility for, the content,
+                privacy policies, or
+                practices of any third party web sites or services. You further acknowledge and agree that the Company
+                shall not be responsible or liable, directly or indirectly, for any damage or loss caused or alleged to
+                be caused by or in connection with the use of or reliance on any such content, goods or services
+                available on or through any such web sites or services.</p>
+
+            <p class="faq-answer">We strongly advise You to read the terms and conditions and privacy policies of any
+                third-party web sites
+                or services that You visit.</p>
         </div>
 
         <div id="termination" class="section">
-            <h2>Termination</h2>
-            <p>We may terminate or suspend Your access immediately, without prior notice or liability, for any reason whatsoever, including without limitation if You breach these Terms and Conditions.</p>
-            
-            <p>Upon termination, Your right to use the Service will cease immediately.</p>
+            <h2 class="section-title">Termination</h2>
+            <p class="faq-answer">We may terminate or suspend Your access immediately, without prior notice or
+                liability, for any reason
+                whatsoever, including without limitation if You breach these Terms and Conditions.</p>
+
+            <p class="faq-answer">Upon termination, Your right to use the Service will cease immediately.</p>
         </div>
 
         <div id="limitation" class="section">
-            <h2>Limitation of Liability</h2>
-            <p>Notwithstanding any damages that You might incur, the entire liability of the Company and any of its suppliers under any provision of this Terms and Your exclusive remedy for all of the foregoing shall be limited to the amount actually paid by You through the Service or 100 USD if You haven't purchased anything through the Service.</p>
-            
-            <p>To the maximum extent permitted by applicable law, in no event shall the Company or its suppliers be liable for any special, incidental, indirect, or consequential damages whatsoever (including, but not limited to, damages for loss of profits, loss of data or other information, for business interruption, for personal injury, loss of privacy arising out of or in any way related to the use of or inability to use the Service, third-party software and/or third-party hardware used with the Service, or otherwise in connection with any provision of this Terms), even if the Company or any supplier has been advised of the possibility of such damages and even if the remedy fails of its essential purpose.</p>
-            
-            <p>Some states do not allow the exclusion of implied warranties or limitation of liability for incidental or consequential damages, which means that some of the above limitations may not apply. In these states, each party's liability will be limited to the greatest extent permitted by law.</p>
+            <h2 class="section-title">Limitation of Liability</h2>
+            <p class="faq-answer">Notwithstanding any damages that You might incur, the entire liability of the Company
+                and any of its
+                suppliers under any provision of this Terms and Your exclusive remedy for all of the foregoing shall be
+                limited to the amount actually paid by You through the Service or 100 USD if You haven't purchased
+                anything through the Service.</p>
+
+            <p class="faq-answer">To the maximum extent permitted by applicable law, in no event shall the Company or
+                its suppliers be
+                liable for any special, incidental, indirect, or consequential damages whatsoever (including, but not
+                limited to, damages for loss of profits, loss of data or other information, for business interruption,
+                for personal injury, loss of privacy arising out of or in any way related to the use of or inability to
+                use the Service, third-party software and/or third-party hardware used with the Service, or otherwise in
+                connection with any provision of this Terms), even if the Company or any supplier has been advised of
+                the possibility of such damages and even if the remedy fails of its essential purpose.</p>
+
+            <p class="faq-answer">Some states do not allow the exclusion of implied warranties or limitation of
+                liability for incidental or
+                consequential damages, which means that some of the above limitations may not apply. In these states,
+                each party's liability will be limited to the greatest extent permitted by law.</p>
         </div>
 
         <div id="disclaimer" class="section">
-            <h2>Disclaimer</h2>
-            <p>The Service is provided to You "AS IS" and "AS AVAILABLE" and with all faults and defects without warranty of any kind. To the maximum extent permitted under applicable law, the Company, on its own behalf and on behalf of its Affiliates and its and their respective licensors and service providers, expressly disclaims all warranties, whether express, implied, statutory or otherwise, with respect to the Service, including all implied warranties of merchantability, fitness for a particular purpose, title and non-infringement, and warranties that may arise out of course of dealing, course of performance, usage or trade practice. Without limitation to the foregoing, the Company provides no warranty or undertaking, and makes no representation of any kind that the Service will meet Your requirements, achieve any intended results, be compatible or work with any other software, applications, systems or services, operate without interruption, meet any performance or reliability standards or be error free or that any errors or defects can or will be corrected.</p>
-            
-            <p>Without limiting the foregoing, neither the Company nor any of the company's provider makes any representation or warranty of any kind, express or implied: (i) as to the operation or availability of the Service, or the information, content, and materials or products included thereon; (ii) that the Service will be uninterrupted or error-free; (iii) as to the accuracy, reliability, or currency of any information or content provided through the Service; or (iv) that the Service, its servers, the content, or e-mails sent from or on behalf of the Company are free of viruses, scripts, trojan horses, worms, malware, timebombs or other harmful components.</p>
-            
-            <p>Some jurisdictions do not allow the exclusion of certain types of warranties or limitations on applicable statutory rights of a consumer, so some or all of the above exclusions and limitations may not apply to You. But in such a case the exclusions and limitations set forth in this section shall be applied to the greatest extent enforceable under applicable law.</p>
+            <h2 class="section-title">Disclaimer</h2>
+            <p class="faq-answer">The Service is provided to You "AS IS" and "AS AVAILABLE" and with all faults and
+                defects without
+                warranty of any kind. To the maximum extent permitted under applicable law, the Company, on its own
+                behalf and on behalf of its Affiliates and its and their respective licensors and service providers,
+                expressly disclaims all warranties, whether express, implied, statutory or otherwise, with respect to
+                the Service, including all implied warranties of merchantability, fitness for a particular purpose,
+                title and non-infringement, and warranties that may arise out of course of dealing, course of
+                performance, usage or trade practice. Without limitation to the foregoing, the Company provides no
+                warranty or undertaking, and makes no representation of any kind that the Service will meet Your
+                requirements, achieve any intended results, be compatible or work with any other software, applications,
+                systems or services, operate without interruption, meet any performance or reliability standards or be
+                error free or that any errors or defects can or will be corrected.</p>
+
+            <p class="faq-answer">Without limiting the foregoing, neither the Company nor any of the company's provider
+                makes any
+                representation or warranty of any kind, express or implied: (i) as to the operation or availability of
+                the Service, or the information, content, and materials or products included thereon; (ii) that the
+                Service will be uninterrupted or error-free; (iii) as to the accuracy, reliability, or currency of any
+                information or content provided through the Service; or (iv) that the Service, its servers, the content,
+                or e-mails sent from or on behalf of the Company are free of viruses, scripts, trojan horses, worms,
+                malware, timebombs or other harmful components.</p>
+
+            <p class="faq-answer">Some jurisdictions do not allow the exclusion of certain types of warranties or
+                limitations on applicable
+                statutory rights of a consumer, so some or all of the above exclusions and limitations may not apply to
+                You. But in such a case the exclusions and limitations set forth in this section shall be applied to the
+                greatest extent enforceable under applicable law.</p>
         </div>
 
         <div id="governing-law" class="section">
-            <h2>Governing Law</h2>
-            <p>The laws of the Country, excluding its conflicts of law rules, shall govern this Terms and Your use of the Service. Your use of the Application may also be subject to other local, state, national, or international laws.</p>
+            <h2 class="section-title">Governing Law</h2>
+            <p class="faq-answer">The laws of the Country, excluding its conflicts of law rules, shall govern this Terms
+                and Your use of
+                the Service. Your use of the Application may also be subject to other local, state, national, or
+                international laws.</p>
         </div>
 
         <div id="disputes" class="section">
-            <h2>Disputes Resolution</h2>
-            <p>If You have any concern or dispute about the Service, You agree to first try to resolve the dispute informally by contacting the Company.</p>
+            <h2 class="section-title">Disputes Resolution</h2>
+            <p class="faq-answer">If You have any concern or dispute about the Service, You agree to first try to
+                resolve the dispute
+                informally by contacting the Company.</p>
         </div>
 
         <div id="eu-users" class="section">
-            <h2>For European Union (EU) Users</h2>
-            <p>If You are a European Union consumer, you will benefit from any mandatory provisions of the law of the country in which you are resident in.</p>
+            <h2 class="section-title">For European Union (EU) Users</h2>
+            <p class="faq-answer">If You are a European Union consumer, you will benefit from any mandatory provisions
+                of the law of the
+                country in which you are resident in.</p>
         </div>
 
         <div id="us-compliance" class="section">
-            <h2>United States Legal Compliance</h2>
-            <p>You represent and warrant that (i) You are not located in a country that is subject to the United States government embargo, or that has been designated by the United States government as a "terrorist supporting" country, and (ii) You are not listed on any United States government list of prohibited or restricted parties.</p>
+            <h2 class="section-title">United States Legal Compliance</h2>
+            <p class="faq-answer">You represent and warrant that (i) You are not located in a country that is subject to
+                the United States
+                government embargo, or that has been designated by the United States government as a "terrorist
+                supporting" country, and (ii) You are not listed on any United States government list of prohibited or
+                restricted parties.</p>
         </div>
 
         <div id="severability" class="section">
-            <h2>Severability and Waiver</h2>
-            
+            <h2 class="section-title">Severability and Waiver</h2>
+
             <h3>Severability</h3>
-            <p>If any provision of these Terms is held to be unenforceable or invalid, such provision will be changed and interpreted to accomplish the objectives of such provision to the greatest extent possible under applicable law and the remaining provisions will continue in full force and effect.</p>
-            
+            <p class="faq-answer">If any provision of these Terms is held to be unenforceable or invalid, such provision
+                will be changed
+                and interpreted to accomplish the objectives of such provision to the greatest extent possible under
+                applicable law and the remaining provisions will continue in full force and effect.</p>
+
             <h3>Waiver</h3>
-            <p>Except as provided herein, the failure to exercise a right or to require performance of an obligation under this Terms shall not effect a party's ability to exercise such right or require such performance at any time thereafter nor shall be the waiver of a breach constitute a waiver of any subsequent breach.</p>
+            <p class="faq-answer">Except as provided herein, the failure to exercise a right or to require performance
+                of an obligation
+                under this Terms shall not effect a party's ability to exercise such right or require such performance
+                at any time thereafter nor shall be the waiver of a breach constitute a waiver of any subsequent breach.
+            </p>
         </div>
 
         <div id="translation" class="section">
-            <h2>Translation Interpretation</h2>
-            <p>These Terms and Conditions may have been translated if We have made them available to You on our Service. You agree that the original English text shall prevail in the case of a dispute.</p>
+            <h2 class="section-title">Translation Interpretation</h2>
+            <p class="faq-answer">These Terms and Conditions may have been translated if We have made them available to
+                You on our Service.
+                You agree that the original English text shall prevail in the case of a dispute.</p>
         </div>
 
         <div id="changes" class="section">
-            <h2>Changes to These Terms and Conditions</h2>
-            <p>We reserve the right, at Our sole discretion, to modify or replace these Terms at any time. If a revision is material We will make reasonable efforts to provide at least 30 days' notice prior to any new terms taking effect. What constitutes a material change will be determined at Our sole discretion.</p>
-            
-            <p>By continuing to access or use Our Service after those revisions become effective, You agree to be bound by the revised terms. If You do not agree to the new terms, in whole or in part, please stop using the website and the Service.</p>
+            <h2 class="section-title">Changes to These Terms and Conditions</h2>
+            <p class="faq-answer">We reserve the right, at Our sole discretion, to modify or replace these Terms at any
+                time. If a revision
+                is material We will make reasonable efforts to provide at least 30 days' notice prior to any new terms
+                taking effect. What constitutes a material change will be determined at Our sole discretion.</p>
+
+            <p class="faq-answer">By continuing to access or use Our Service after those revisions become effective, You
+                agree to be bound
+                by the revised terms. If You do not agree to the new terms, in whole or in part, please stop using the
+                website and the Service.</p>
         </div>
 
         <div id="contact" class="section">
-            <h2>Contact Us</h2>
-            <p>If you have any questions about these Terms and Conditions, You can contact us:</p>
-            
+            <h2 class="section-title">Contact Us</h2>
+            <p class="faq-answer">If you have any questions about these Terms and Conditions, You can contact us:</p>
+
             <div class="contact-info">
-                <p>By email: <a href="mailto:support@streamsave.com">support@streamsave.com</a></p>
+                <p class="faq-answer">By email: <a href="mailto:streamsave.online@gmail.com">streamsave.online@gmail.com</a></p>
             </div>
         </div>
     </div>
@@ -504,25 +670,30 @@
 
     <footer>
         <div class="footer-content">
-            
+
             <div class="footer-disclaimer">
-                <p>©2025 StreamSave. Not affiliated with Instagram or Meta. All trademarks are the property of their
-                    respective owners.</p>
-                <p>This tool is intended for personal use only. Please respect copyright laws and only download content
-                    you have permission to use.</p>
+                <div style="display: flex; justify-content: center; margin-bottom: 30px;"><img
+                        src="https://www.streamsave.online/static/images/logo.png" style="width: 10%;
+                    height: 10%;
+                    transition: transform 0.5s ease; margin-top: auto;">
+                    <h2 class="footer-title">StreamSave</h2>
+                    
+                </div>
+                <p class="faq-answer">©2025 StreamSave. All rights reserved.</p>
             </div>
             <div class="footer-social">
-                <a href="https://twitter.com/streamsave" target="_blank" aria-label="Twitter">
+                <a href="" target="_blank" aria-label="Twitter">
                     <i class="fab fa-twitter"></i>
                 </a>
-                <a href="https://github.com/streamsave" target="_blank" aria-label="GitHub">
+                <a href="" target="_blank" aria-label="GitHub">
                     <i class="fab fa-github"></i>
                 </a>
-                <a href="https://facebook.com/streamsave" target="_blank" aria-label="Facebook">
+                <a href="" target="_blank" aria-label="Facebook">
                     <i class="fab fa-facebook-f"></i>
                 </a>
             </div>
         </div>
     </footer>
 </body>
+
 </html>
