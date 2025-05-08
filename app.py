@@ -1,4 +1,5 @@
 import random
+import traceback
 from bs4 import BeautifulSoup
 from flask import Flask, json, redirect, render_template, request, send_file, jsonify
 import requests
@@ -78,6 +79,7 @@ L = instaloader.Instaloader(
     download_geotags=False,
     download_comments=False,
     save_metadata=False,
+    request_timeout=60  # Add this
 )
 
 
@@ -315,165 +317,50 @@ def serve_preview():
 
 
 def fallback_download(url):
-    """Alternative method using requests"""
     try:
-        logger.info(f"Using fallback download method for {url}")
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
             "Referer": "https://www.instagram.com/",
-            "Cookie": "",  # Empty cookie - we're not logged in
         }
-
+        
         session = requests.Session()
-        session.max_redirects = 5  # Limit redirects to 5
-        response = session.get(url, headers=headers, timeout=10, allow_redirects=True)
-
-        # Check if we were redirected to login page
-        if "login" in response.url.lower():
-            logger.warning("Redirected to login page")
-            return None, "Instagram requires login to view this content"
-
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        # Find media in meta tags
-        media_url = None
-        preview_url = None
-        is_video = False
-
-        for meta in soup.find_all("meta"):
-            if meta.get("property") == "og:video":
-                media_url = meta.get("content")
-                is_video = True
-                break
-            elif meta.get("property") == "og:image" and not media_url:
-                media_url = meta.get("content")
-
-        if not media_url:
-            # Try to find in JSON data
-            for script in soup.find_all("script", type="application/ld+json"):
-                try:
-                    data = json.loads(script.string)
-                    if "video" in data:
-                        media_url = data["video"]["contentUrl"]
-                        preview_url = data["video"]["thumbnailUrl"]
-                        is_video = True
-                        break
-                    elif "image" in data:
-                        if isinstance(data["image"], list) and len(data["image"]) > 0:
-                            media_url = data["image"][0].get("url", "")
-                        else:
-                            media_url = data["image"].get("url", "")
-                        break
-                except (json.JSONDecodeError, AttributeError):
-                    pass
-
-        if not media_url:
-            # Last attempt - look for embeded videos or images
-            for script in soup.find_all("script"):
-                if script.string and "window.__additionalDataLoaded" in script.string:
-                    # Try to extract JSON
-                    json_match = re.search(
-                        r"window\.__additionalDataLoaded\([^,]+,\s*({.+})\);",
-                        script.string,
-                    )
-                    if json_match:
-                        try:
-                            data = json.loads(json_match.group(1))
-
-                            # Navigate the complex Instagram JSON structure
-                            if "graphql" in data:
-                                post_data = data["graphql"].get("shortcode_media", {})
-
-                                if post_data.get("is_video"):
-                                    media_url = post_data.get("video_url")
-                                    preview_url = post_data.get("display_url")
-                                    is_video = True
-                                else:
-                                    media_url = post_data.get("display_url")
-
-                                # Handle carousel/multiple images
-                                if (
-                                    not media_url
-                                    and "edge_sidecar_to_children" in post_data
-                                ):
-                                    edges = post_data["edge_sidecar_to_children"].get(
-                                        "edges", []
-                                    )
-                                    if edges and len(edges) > 0:
-                                        first_node = edges[0]["node"]
-                                        if first_node.get("is_video"):
-                                            media_url = first_node.get("video_url")
-                                            preview_url = first_node.get("display_url")
-                                            is_video = True
-                                        else:
-                                            media_url = first_node.get("display_url")
-
-                            # Also check items array used in some responses
-                            elif "items" in data and len(data["items"]) > 0:
-                                item = data["items"][0]
-                                if (
-                                    item.get("video_versions")
-                                    and len(item["video_versions"]) > 0
-                                ):
-                                    media_url = item["video_versions"][0]["url"]
-                                    is_video = True
-                                    if (
-                                        "image_versions2" in item
-                                        and "candidates" in item["image_versions2"]
-                                    ):
-                                        preview_url = item["image_versions2"][
-                                            "candidates"
-                                        ][0]["url"]
-                                elif (
-                                    "image_versions2" in item
-                                    and "candidates" in item["image_versions2"]
-                                ):
-                                    media_url = item["image_versions2"]["candidates"][
-                                        0
-                                    ]["url"]
-
-                        except json.JSONDecodeError:
-                            pass
-
-        if not media_url:
-            # Try searching for any video or image URLs in the HTML
-            video_urls = re.findall(
-                r'https://[^"\'\s]+\.cdninstagram\.com/[^"\'\s]+\.mp4[^"\'\s]*',
-                response.text,
-            )
-            if video_urls:
-                media_url = video_urls[0]
-                is_video = True
-            else:
-                image_urls = re.findall(
-                    r'https://[^"\'\s]+\.cdninstagram\.com/[^"\'\s]+\.jpg[^"\'\s]*',
-                    response.text,
-                )
-                if image_urls:
-                    media_url = image_urls[0]
-
-        if not media_url:
-            return None, "No media found in this post"
-
-        if not preview_url:
-            preview_url = media_url if not is_video else None
-
-        return [
-            {
-                "url": media_url,
-                "preview": preview_url or media_url,
-                "title": "instagram_media",
-                "ext": "mp4" if is_video else "jpg",
-                "is_image": not is_video,
-            }
-        ], None
-
-    except requests.exceptions.TooManyRedirects as e:
-        logger.error(f"Too many redirects: {str(e)}")
-        return None, "Error: Too many redirects. Instagram may be blocking access."
+        session.max_redirects = 3
+        response = session.get(url, headers=headers, timeout=15)
+        
+        # New pattern matching for Instagram's current HTML
+        video_pattern = r'"video_url":"([^"]+)"'
+        image_pattern = r'"display_url":"([^"]+)"'
+        
+        if response.status_code == 200:
+            # Try to find video first
+            video_match = re.search(video_pattern, response.text)
+            if video_match:
+                video_url = video_match.group(1).replace('\\', '')
+                return [{
+                    "url": video_url,
+                    "preview": video_url.replace('.mp4', '.jpg'),
+                    "ext": "mp4",
+                    "is_image": False,
+                    "title": "instagram_video"
+                }], None
+            
+            # Then try image
+            image_match = re.search(image_pattern, response.text)
+            if image_match:
+                image_url = image_match.group(1).replace('\\', '')
+                return [{
+                    "url": image_url,
+                    "preview": image_url,
+                    "ext": "jpg",
+                    "is_image": True,
+                    "title": "instagram_image"
+                }], None
+        
+        return None, "No media found in this post"
+        
     except Exception as e:
-        logger.error(f"Fallback download error: {str(e)}")
+        logger.error(f"Improved fallback error: {str(e)}")
         return None, f"Error: {str(e)}"
 
 
@@ -625,14 +512,23 @@ def download():
             500,
         )
 
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Download request error: {str(e)}")
-        return jsonify({"error": f"Download failed: {str(e)}"}), 500
+    except Exception as e:
+        logger.error(f"Full download error: {str(e)}\nTraceback: {traceback.format_exc()}")
+        return jsonify({"error": "Download failed. Please try again later."}), 500
     except Exception as e:
         logger.error(f"Processing error: {str(e)}")
         return jsonify({"error": f"Processing error: {str(e)}"}), 500
     
-
+def download_with_retry(url, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            result, error = download_media(url)
+            if result:
+                return result, error
+            time.sleep(2 ** attempt)  # Exponential backoff
+        except Exception as e:
+            logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+    return None, "All download attempts failed"
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5000, threaded=True)
