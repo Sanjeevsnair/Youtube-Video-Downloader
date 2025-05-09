@@ -474,13 +474,497 @@ def download_reel(url):
         return None, "All methods failed (including authenticated)"
 
 
+def download_carousel_post(url):
+    """Enhanced function specifically for handling Instagram carousel posts (multiple images/videos)"""
+    shortcode = get_shortcode_from_url(url)
+    if not shortcode:
+        return None, "Invalid Instagram URL"
+    
+    logger.info(f"Processing carousel post with shortcode: {shortcode}")
+    
+    # Try each method in sequence until one succeeds
+    methods = [
+        ("Instaloader", try_carousel_with_instaloader),
+        ("Selenium", try_carousel_with_selenium),
+        ("API", try_carousel_with_api),
+        ("HTML", try_carousel_from_html)
+    ]
+    
+    for method_name, method_func in methods:
+        try:
+            logger.info(f"Attempting carousel download with {method_name}")
+            media_info, error = method_func(url, shortcode)
+            if media_info and len(media_info) > 0:
+                logger.info(f"Successfully downloaded carousel with {method_name}: {len(media_info)} items")
+                return media_info, None
+            logger.warning(f"{method_name} failed: {error}")
+        except Exception as e:
+            logger.error(f"Error using {method_name}: {str(e)}")
+    
+    return None, "All methods failed to download carousel post"
+
+def try_carousel_with_instaloader(url, shortcode):
+    """Try to download carousel using Instaloader"""
+    try:
+        L = instaloader.Instaloader(
+            quiet=True,
+            download_pictures=False,
+            download_videos=False,
+            download_video_thumbnails=False,
+            download_geotags=False,
+            download_comments=False,
+            save_metadata=False
+        )
+        
+        post = instaloader.Post.from_shortcode(L.context, shortcode)
+        media_info = []
+        
+        if post.typename == 'GraphSidecar':  # Carousel
+            logger.info(f"Detected GraphSidecar (carousel) with {post.mediacount} items")
+            for idx, node in enumerate(post.get_sidecar_nodes()):
+                # Determine aspect ratio and format
+                aspect_ratio = getattr(node, 'aspect_ratio', 1)
+                if aspect_ratio == 1:
+                    format_type = "square"
+                elif aspect_ratio > 1:
+                    format_type = "landscape"
+                else:
+                    format_type = "portrait"
+                
+                media_item = {
+                    "title": f"ig_{post.shortcode}_{idx+1}of{post.mediacount}",
+                    "format": format_type,
+                    "timestamp": node.date_utc.timestamp() if node.date_utc else int(time.time()),
+                    "carousel_index": idx+1,
+                    "carousel_total": post.mediacount
+                }
+                
+                if node.is_video:
+                    media_item.update({
+                        "url": node.video_url,
+                        "preview": node.display_url,
+                        "ext": "mp4",
+                        "is_image": False
+                    })
+                else:
+                    media_item.update({
+                        "url": node.display_url,
+                        "preview": node.display_url,
+                        "ext": "jpg",
+                        "is_image": True
+                    })
+                
+                media_info.append(media_item)
+            
+            return media_info, None
+        else:
+            return None, "Post is not a carousel"
+            
+    except Exception as e:
+        logger.warning(f"Instaloader carousel failed: {str(e)}")
+        return None, str(e)
+
+def try_carousel_with_selenium(url, shortcode):
+    """Extract carousel media items using Selenium"""
+    driver = None
+    try:
+        driver = setup_selenium_driver()
+        driver.get(url)
+        
+        # Wait for main content to load
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "article[role='presentation']")))
+        
+        # Check if it's a carousel
+        carousel_indicators = driver.find_elements(By.CSS_SELECTOR, "div[role='button'][aria-label*='carousel']")
+        if not carousel_indicators:
+            return None, "Not a carousel post"
+            
+        # Find out how many items are in the carousel
+        total_items = len(driver.find_elements(By.CSS_SELECTOR, "li[role='option'][aria-selected]"))
+        if total_items <= 1:
+            # Alternative method to count carousel items
+            dots = driver.find_elements(By.CSS_SELECTOR, "div._acnb")
+            total_items = len(dots) if dots else 0
+        
+        if total_items <= 1:
+            logger.warning("Could not determine carousel item count")
+            # Default to proceed and discover items as we go
+            total_items = 10  # Assume a reasonable maximum
+        
+        logger.info(f"Detected carousel with approximately {total_items} items")
+        media_info = []
+        
+        # Navigate through carousel items
+        current_item = 0
+        while current_item < total_items:
+            try:
+                # Click next button if not the first item
+                if current_item > 0:
+                    next_buttons = driver.find_elements(By.CSS_SELECTOR, "button._aahi, button._afxw")
+                    if next_buttons:
+                        next_button = next_buttons[-1]  # Usually the last button is "next"
+                        try:
+                            driver.execute_script("arguments[0].click();", next_button)
+                            time.sleep(0.5)  # Short wait for carousel to move
+                        except:
+                            logger.warning("Failed to click next button, may have reached end")
+                            break
+                    else:
+                        logger.warning("No next button found, may have reached end")
+                        break
+                
+                # Check for video first
+                videos = driver.find_elements(By.TAG_NAME, "video")
+                if videos:
+                    # Get video URL
+                    video_url = videos[0].get_attribute("src")
+                    if not video_url or video_url.startswith("blob:"):
+                        # Try to get video URL from source tags
+                        sources = videos[0].find_elements(By.TAG_NAME, "source")
+                        if sources:
+                            video_url = sources[0].get_attribute("src")
+                    
+                    # Get preview image
+                    preview_url = ""
+                    preview_elements = driver.find_elements(By.CSS_SELECTOR, "img[style*='object-fit']")
+                    if preview_elements:
+                        preview_url = preview_elements[0].get_attribute("src")
+                    
+                    if video_url and not video_url.startswith("blob:"):
+                        media_info.append({
+                            "url": video_url,
+                            "preview": preview_url,
+                            "ext": "mp4",
+                            "is_image": False,
+                            "title": f"ig_{shortcode}_{current_item+1}of{total_items}",
+                            "format": "square",  # Default, will be updated based on aspect ratio in frontend
+                            "carousel_index": current_item+1,
+                            "carousel_total": total_items
+                        })
+                else:
+                    # Handle image
+                    images = driver.find_elements(By.CSS_SELECTOR, "img[style*='object-fit']")
+                    if images:
+                        img_url = images[0].get_attribute("src")
+                        if img_url:
+                            media_info.append({
+                                "url": img_url,
+                                "preview": img_url,
+                                "ext": "jpg",
+                                "is_image": True,
+                                "title": f"ig_{shortcode}_{current_item+1}of{total_items}",
+                                "format": "square",  # Default, will be updated based on aspect ratio in frontend
+                                "carousel_index": current_item+1,
+                                "carousel_total": total_items
+                            })
+            except Exception as e:
+                logger.warning(f"Error processing carousel item {current_item}: {str(e)}")
+                
+            current_item += 1
+            
+            # Safety check - if we've processed more items than expected, break
+            if current_item > total_items + 5:
+                break
+        
+        return media_info if media_info else None, None
+        
+    except Exception as e:
+        logger.error(f"Selenium carousel error: {str(e)}")
+        return None, str(e)
+    finally:
+        if driver:
+            driver.quit()
+
+
+def try_carousel_with_api(url, shortcode):
+    """Try to download carousel using Instagram's API endpoints"""
+    try:
+        # Try both GraphQL and mobile API endpoints
+        endpoints = [
+            f"https://www.instagram.com/p/{shortcode}/?__a=1&__d=dis",
+            f"https://i.instagram.com/api/v1/media/{shortcode}/info/"
+        ]
+        
+        headers = [
+            {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "X-IG-App-ID": "936619743392459"  # Web
+            },
+            {
+                "User-Agent": "Instagram 267.0.0.19.301 Android",
+                "X-IG-App-ID": "567067343352427"  # Mobile
+            }
+        ]
+        
+        for api_url, header in zip(endpoints, headers):
+            try:
+                response = requests.get(api_url, headers=header, timeout=15)
+                if response.status_code == 200:
+                    data = response.json()
+                    media_info = []
+                    
+                    # Parse different API response formats
+                    if 'items' in data:  # Mobile API format
+                        item = data['items'][0]
+                        if item.get('carousel_media'):
+                            total_items = len(item['carousel_media'])
+                            for idx, media in enumerate(item['carousel_media']):
+                                if media['media_type'] == 1:  # Image
+                                    image_url = media['image_versions2']['candidates'][0]['url']
+                                    media_info.append({
+                                        "url": image_url,
+                                        "preview": image_url,
+                                        "ext": "jpg",
+                                        "is_image": True,
+                                        "title": f"ig_{shortcode}_{idx+1}of{total_items}",
+                                        "format": "square",
+                                        "carousel_index": idx+1,
+                                        "carousel_total": total_items
+                                    })
+                                elif media['media_type'] == 2:  # Video
+                                    video_url = media['video_versions'][0]['url']
+                                    preview = media['image_versions2']['candidates'][0]['url']
+                                    media_info.append({
+                                        "url": video_url,
+                                        "preview": preview,
+                                        "ext": "mp4",
+                                        "is_image": False,
+                                        "title": f"ig_{shortcode}_{idx+1}of{total_items}",
+                                        "format": "square",
+                                        "carousel_index": idx+1,
+                                        "carousel_total": total_items
+                                    })
+                        else:
+                            return None, "Not a carousel post"
+                            
+                    elif 'graphql' in data:  # Web API format
+                        media = data['graphql']['shortcode_media']
+                        if media.get('edge_sidecar_to_children'):
+                            edges = media['edge_sidecar_to_children']['edges']
+                            total_items = len(edges)
+                            for idx, edge in enumerate(edges):
+                                node = edge['node']
+                                if node['__typename'] == 'GraphImage':
+                                    media_info.append({
+                                        "url": node['display_url'],
+                                        "preview": node['display_url'],
+                                        "ext": "jpg",
+                                        "is_image": True,
+                                        "title": f"ig_{shortcode}_{idx+1}of{total_items}",
+                                        "format": "square",
+                                        "carousel_index": idx+1,
+                                        "carousel_total": total_items
+                                    })
+                                elif node['__typename'] == 'GraphVideo':
+                                    media_info.append({
+                                        "url": node['video_url'],
+                                        "preview": node['display_url'],
+                                        "ext": "mp4",
+                                        "is_image": False,
+                                        "title": f"ig_{shortcode}_{idx+1}of{total_items}",
+                                        "format": "square",
+                                        "carousel_index": idx+1,
+                                        "carousel_total": total_items
+                                    })
+                        else:
+                            return None, "Not a carousel post"
+                    
+                    if media_info:
+                        return media_info, None
+                        
+            except Exception as e:
+                logger.warning(f"API {api_url} failed: {str(e)}")
+                continue
+                
+        return None, "All API methods failed"
+        
+    except Exception as e:
+        logger.error(f"API carousel extraction failed: {str(e)}")
+        return None, str(e)
+
+
+def try_carousel_from_html(url, shortcode):
+    """Extract carousel media from raw HTML as last resort"""
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept-Language": "en-US,en;q=0.9"
+        }
+        
+        session = requests.Session()
+        session.max_redirects = 3
+        response = session.get(url, headers=headers, timeout=15)
+        
+        if response.status_code == 200:
+            html_content = response.text
+            
+            # Look for carousel identifiers in HTML
+            if '"edge_sidecar_to_children"' not in html_content:
+                return None, "Not a carousel post based on HTML content"
+            
+            # Extract JSON data from HTML
+            json_data_match = re.search(r'window\._sharedData\s*=\s*({.+?});</script>', html_content)
+            if not json_data_match:
+                json_data_match = re.search(r'<script type="application/ld\+json">(.+?)</script>', html_content)
+            
+            if json_data_match:
+                try:
+                    json_str = json_data_match.group(1)
+                    data = json.loads(json_str)
+                    
+                    # Navigate through the JSON structure
+                    media_info = []
+                    
+                    # Try to find post data in different JSON structures
+                    post_data = None
+                    carousel_edges = None
+                    
+                    # Look in sharedData structure
+                    if 'entry_data' in data:
+                        if 'PostPage' in data['entry_data']:
+                            post = data['entry_data']['PostPage'][0]['graphql']['shortcode_media']
+                            if post.get('edge_sidecar_to_children'):
+                                carousel_edges = post['edge_sidecar_to_children']['edges']
+                    
+                    # Look in ld+json structure
+                    elif '@graph' in data:
+                        for item in data['@graph']:
+                            if item.get('@type') == 'SocialMediaPosting':
+                                if item.get('sharedContent') and isinstance(item['sharedContent'], list):
+                                    carousel_edges = item['sharedContent']
+                    
+                    # Parse carousel edges if found
+                    if carousel_edges:
+                        total_items = len(carousel_edges)
+                        for idx, item in enumerate(carousel_edges):
+                            # Extract node from different structures
+                            node = item.get('node') if 'node' in item else item
+                            
+                            if 'is_video' in node and node['is_video']:
+                                # Video item
+                                video_url = node.get('video_url')
+                                if not video_url:
+                                    continue
+                                    
+                                preview_url = node.get('display_url')
+                                media_info.append({
+                                    "url": video_url,
+                                    "preview": preview_url,
+                                    "ext": "mp4",
+                                    "is_image": False,
+                                    "title": f"ig_{shortcode}_{idx+1}of{total_items}",
+                                    "format": "square",
+                                    "carousel_index": idx+1,
+                                    "carousel_total": total_items
+                                })
+                            else:
+                                # Image item
+                                image_url = node.get('display_url')
+                                if not image_url:
+                                    continue
+                                    
+                                media_info.append({
+                                    "url": image_url,
+                                    "preview": image_url,
+                                    "ext": "jpg",
+                                    "is_image": True,
+                                    "title": f"ig_{shortcode}_{idx+1}of{total_items}",
+                                    "format": "square",
+                                    "carousel_index": idx+1,
+                                    "carousel_total": total_items
+                                })
+                    
+                    if media_info:
+                        return media_info, None
+                        
+                except json.JSONDecodeError:
+                    logger.warning("Failed to parse JSON from HTML")
+            
+            # As a last resort, try regex pattern matching
+            video_urls = re.findall(r'"video_url"\s*:\s*"([^"]+)"', html_content)
+            image_urls = re.findall(r'"display_url"\s*:\s*"([^"]+)"', html_content)
+            
+            if video_urls or image_urls:
+                media_info = []
+                total_items = len(video_urls) + len(image_urls)
+                
+                # Process videos
+                for idx, url in enumerate(video_urls):
+                    url = url.replace('\\u0026', '&')
+                    preview = image_urls[idx] if idx < len(image_urls) else ""
+                    preview = preview.replace('\\u0026', '&') if preview else ""
+                    
+                    media_info.append({
+                        "url": url,
+                        "preview": preview,
+                        "ext": "mp4",
+                        "is_image": False,
+                        "title": f"ig_{shortcode}_{idx+1}of{total_items}",
+                        "format": "square",
+                        "carousel_index": idx+1,
+                        "carousel_total": total_items
+                    })
+                
+                # Process images (skipping ones used as video previews)
+                video_count = len(video_urls)
+                for idx in range(video_count, len(image_urls)):
+                    url = image_urls[idx].replace('\\u0026', '&')
+                    
+                    media_info.append({
+                        "url": url,
+                        "preview": url,
+                        "ext": "jpg",
+                        "is_image": True,
+                        "title": f"ig_{shortcode}_{idx+1}of{total_items}",
+                        "format": "square",
+                        "carousel_index": idx+1,
+                        "carousel_total": total_items
+                    })
+                
+                if media_info:
+                    return media_info, None
+        
+        return None, "No carousel media found in HTML"
+    
+    except Exception as e:
+        logger.warning(f"HTML carousel extraction failed: {str(e)}")
+        return None, str(e)
+
+
+# Update the download_instagram_post function to utilize the new carousel downloader
 def download_instagram_post(url):
-    """Handles all Instagram post types: single photos, videos, and carousels"""
+    """Enhanced function for handling all Instagram post types"""
     shortcode = get_shortcode_from_url(url)
     if not shortcode:
         return None, "Invalid Instagram URL"
 
     try:
+        # First check if it's a carousel post
+        is_carousel = False
+        
+        # Quick check for carousel indicators in URL response
+        try:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Accept": "text/html"
+            }
+            response = requests.head(url, headers=headers, timeout=5)
+            if response.status_code == 200:
+                # Let's do a quick GET to check for carousel indicators
+                response = requests.get(url, headers=headers, timeout=5)
+                is_carousel = 'edge_sidecar_to_children' in response.text or 'carousel_media' in response.text
+        except:
+            pass
+            
+        # If it appears to be a carousel, use specialized carousel handling
+        if is_carousel:
+            logger.info(f"Detected potential carousel post: {url}")
+            media_info, error = download_carousel_post(url)
+            if media_info:
+                return media_info, None
+        
+        # If carousel detection failed or it's not a carousel, try standard methods
         # First try with Instaloader
         media_info, error = try_with_instaloader(shortcode)
         if media_info:
