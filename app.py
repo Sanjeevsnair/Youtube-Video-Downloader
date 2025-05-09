@@ -481,7 +481,27 @@ def download_instagram_post(url):
         return None, "Invalid Instagram URL"
 
     try:
-        # Initialize Instaloader
+        # First try with Instaloader
+        media_info, error = try_with_instaloader(shortcode)
+        if media_info:
+            return media_info, None
+            
+        # Fallback to Selenium if Instaloader fails
+        media_info, error = try_with_selenium(url)
+        if media_info:
+            return media_info, None
+            
+        # Final fallback to API scraping
+        media_info, error = try_with_api_scraping(url)
+        return media_info, error
+            
+    except Exception as e:
+        logger.error(f"Error downloading post: {str(e)}")
+        return None, f"Error downloading post: {str(e)}"
+
+def try_with_instaloader(shortcode):
+    """Try to download using Instaloader"""
+    try:
         L = instaloader.Instaloader(
             quiet=True,
             download_pictures=False,
@@ -489,61 +509,274 @@ def download_instagram_post(url):
             download_video_thumbnails=False
         )
         
-        # Get post object
         post = instaloader.Post.from_shortcode(L.context, shortcode)
-        
         media_info = []
         
-        # Handle different post types
-        if post.typename == 'GraphImage':  # Single image
-            media_info.append({
-                "url": post.url,
-                "preview": post.url,
-                "ext": "jpg",
-                "is_image": True,
-                "title": f"ig_{shortcode}",
-                "format": "square" if post.aspect_ratio == 1 else "portrait"
-            })
-            
-        elif post.typename == 'GraphVideo':  # Single video
-            media_info.append({
-                "url": post.video_url,
-                "preview": post.url,
-                "ext": "mp4",
-                "is_image": False,
-                "title": f"ig_{shortcode}",
-                "format": "square" if post.aspect_ratio == 1 else "portrait"
-            })
-            
-        elif post.typename == 'GraphSidecar':  # Carousel
+        if post.typename == 'GraphSidecar':  # Carousel
             for idx, node in enumerate(post.get_sidecar_nodes()):
+                media_item = {
+                    "title": f"ig_{post.shortcode}_{idx}",
+                    "format": "square" if node.aspect_ratio == 1 else "portrait",
+                    "timestamp": node.date_utc.timestamp() if node.date_utc else int(time.time())
+                }
+                
                 if node.is_video:
-                    media_info.append({
+                    media_item.update({
                         "url": node.video_url,
                         "preview": node.display_url,
                         "ext": "mp4",
-                        "is_image": False,
-                        "title": f"ig_{shortcode}_{idx}",
-                        "format": "square" if node.aspect_ratio == 1 else "portrait"
+                        "is_image": False
                     })
                 else:
-                    media_info.append({
+                    media_item.update({
                         "url": node.display_url,
                         "preview": node.display_url,
                         "ext": "jpg",
-                        "is_image": True,
-                        "title": f"ig_{shortcode}_{idx}",
-                        "format": "square" if node.aspect_ratio == 1 else "portrait"
+                        "is_image": True
                     })
-        
-        if media_info:
-            return media_info, None
-        else:
-            return None, "No media found in post"
+                
+                media_info.append(media_item)
+                
+        elif post.typename in ['GraphImage', 'GraphVideo']:  # Single media
+            media_item = {
+                "title": f"ig_{post.shortcode}",
+                "format": "square" if post.aspect_ratio == 1 else "portrait",
+                "timestamp": post.date_utc.timestamp() if post.date_utc else int(time.time())
+            }
             
+            if post.typename == 'GraphVideo':
+                media_item.update({
+                    "url": post.video_url,
+                    "preview": post.url,
+                    "ext": "mp4",
+                    "is_image": False
+                })
+            else:
+                media_item.update({
+                    "url": post.url,
+                    "preview": post.url,
+                    "ext": "jpg",
+                    "is_image": True
+                })
+                
+            media_info.append(media_item)
+            
+        return media_info, None
+        
     except Exception as e:
-        logger.error(f"Instaloader error: {str(e)}")
-        return None, f"Error downloading post: {str(e)}"
+        logger.warning(f"Instaloader failed: {str(e)}")
+        return None, str(e)
+
+def try_with_selenium(url):
+    """Fallback to Selenium when Instaloader fails"""
+    driver = None
+    try:
+        driver = setup_selenium_driver()
+        driver.get(url)
+        
+        # Wait for main content to load
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "article[role='presentation']")))
+        
+        media_info = []
+        shortcode = get_shortcode_from_url(url)
+        
+        # Check for carousel
+        carousel = driver.find_elements(By.CSS_SELECTOR, "div[role='button'][aria-label*='carousel']")
+        if carousel:
+            # Get all carousel items
+            items = driver.find_elements(By.CSS_SELECTOR, "div._aagv, div._aakz")
+            
+            for idx, item in enumerate(items):
+                try:
+                    # Click to activate carousel item
+                    driver.execute_script("arguments[0].click();", item)
+                    time.sleep(1)  # Wait for content to load
+                    
+                    # Check for video
+                    video = item.find_elements(By.TAG_NAME, "video")
+                    if video:
+                        video_url = video[0].get_attribute("src")
+                        preview = item.find_element(By.TAG_NAME, "img").get_attribute("src")
+                        media_info.append({
+                            "url": video_url,
+                            "preview": preview,
+                            "ext": "mp4",
+                            "is_image": False,
+                            "title": f"ig_{shortcode}_{idx}",
+                            "format": "square"
+                        })
+                    else:
+                        # Handle image
+                        img = item.find_element(By.TAG_NAME, "img")
+                        img_url = img.get_attribute("src")
+                        media_info.append({
+                            "url": img_url,
+                            "preview": img_url,
+                            "ext": "jpg",
+                            "is_image": True,
+                            "title": f"ig_{shortcode}_{idx}",
+                            "format": "square"
+                        })
+                except Exception as e:
+                    logger.warning(f"Failed to process carousel item {idx}: {str(e)}")
+                    continue
+        else:
+            # Single post
+            video = driver.find_elements(By.TAG_NAME, "video")
+            if video:
+                video_url = video[0].get_attribute("src")
+                preview = driver.find_element(By.CSS_SELECTOR, "img[style*='object-fit']").get_attribute("src")
+                media_info.append({
+                    "url": video_url,
+                    "preview": preview,
+                    "ext": "mp4",
+                    "is_image": False,
+                    "title": f"ig_{shortcode}",
+                    "format": "square"
+                })
+            else:
+                img = driver.find_element(By.CSS_SELECTOR, "img[style*='object-fit']")
+                img_url = img.get_attribute("src")
+                media_info.append({
+                    "url": img_url,
+                    "preview": img_url,
+                    "ext": "jpg",
+                    "is_image": True,
+                    "title": f"ig_{shortcode}",
+                    "format": "square"
+                })
+        
+        return media_info if media_info else None, None
+        
+    except Exception as e:
+        logger.error(f"Selenium error: {str(e)}")
+        return None, str(e)
+    finally:
+        if driver:
+            driver.quit()
+
+def try_with_api_scraping(url):
+    """Final fallback using Instagram's internal APIs"""
+    try:
+        shortcode = get_shortcode_from_url(url)
+        if not shortcode:
+            return None, "Invalid URL"
+            
+        # Try both GraphQL and mobile API endpoints
+        endpoints = [
+            f"https://www.instagram.com/p/{shortcode}/?__a=1&__d=dis",
+            f"https://i.instagram.com/api/v1/media/{shortcode}/info/"
+        ]
+        
+        headers = {
+            "User-Agent": random.choice([
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Instagram 267.0.0.19.301 Android"
+            ]),
+            "X-IG-App-ID": random.choice([
+                "936619743392459",  # Web
+                "567067343352427"   # Mobile
+            ])
+        }
+        
+        for api_url in endpoints:
+            try:
+                response = requests.get(api_url, headers=headers, timeout=15)
+                if response.status_code == 200:
+                    data = response.json()
+                    media_info = []
+                    
+                    # Parse different API response formats
+                    if 'items' in data:  # Mobile API format
+                        item = data['items'][0]
+                        if item.get('carousel_media'):
+                            for idx, media in enumerate(item['carousel_media']):
+                                media_item = process_api_media(media, f"{shortcode}_{idx}")
+                                if media_item:
+                                    media_info.append(media_item)
+                        else:
+                            media_item = process_api_media(item, shortcode)
+                            if media_item:
+                                media_info.append(media_item)
+                                
+                    elif 'graphql' in data:  # Web API format
+                        media = data['graphql']['shortcode_media']
+                        if media.get('edge_sidecar_to_children'):
+                            for edge in media['edge_sidecar_to_children']['edges']:
+                                media_item = process_graphql_media(edge['node'], f"{shortcode}_{edge['node']['id']}")
+                                if media_item:
+                                    media_info.append(media_item)
+                        else:
+                            media_item = process_graphql_media(media, shortcode)
+                            if media_item:
+                                media_info.append(media_item)
+                    
+                    if media_info:
+                        return media_info, None
+                        
+            except Exception as e:
+                logger.warning(f"API {api_url} failed: {str(e)}")
+                continue
+                
+        return None, "All API methods failed"
+        
+    except Exception as e:
+        logger.error(f"API scraping failed: {str(e)}")
+        return None, str(e)
+
+def process_api_media(media_data, filename_prefix):
+    """Process media item from mobile API response"""
+    try:
+        if media_data['media_type'] == 1:  # Image
+            image_url = media_data['image_versions2']['candidates'][0]['url']
+            return {
+                "url": image_url,
+                "preview": image_url,
+                "ext": "jpg",
+                "is_image": True,
+                "title": f"ig_{filename_prefix}",
+                "format": "square"
+            }
+        elif media_data['media_type'] == 2:  # Video
+            video_url = media_data['video_versions'][0]['url']
+            preview = media_data['image_versions2']['candidates'][0]['url']
+            return {
+                "url": video_url,
+                "preview": preview,
+                "ext": "mp4",
+                "is_image": False,
+                "title": f"ig_{filename_prefix}",
+                "format": "square"
+            }
+    except Exception as e:
+        logger.warning(f"Failed to process API media: {str(e)}")
+        return None
+
+def process_graphql_media(media_data, filename_prefix):
+    """Process media item from GraphQL API response"""
+    try:
+        if media_data['__typename'] == 'GraphImage':
+            return {
+                "url": media_data['display_url'],
+                "preview": media_data['display_url'],
+                "ext": "jpg",
+                "is_image": True,
+                "title": f"ig_{filename_prefix}",
+                "format": "square"
+            }
+        elif media_data['__typename'] == 'GraphVideo':
+            return {
+                "url": media_data['video_url'],
+                "preview": media_data['display_url'],
+                "ext": "mp4",
+                "is_image": False,
+                "title": f"ig_{filename_prefix}",
+                "format": "square"
+            }
+    except Exception as e:
+        logger.warning(f"Failed to process GraphQL media: {str(e)}")
+        return None
 
 
 def download_media(url):
