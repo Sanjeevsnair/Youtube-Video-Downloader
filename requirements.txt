@@ -5,6 +5,4 @@ beautifulsoup4==4.13.4
 Pillow==11.2.1
 PyYAML==6.0.2
 instaloader==4.14.1
-selenium==4.31.0
-webdriver-manager==4.0.2
-requests==2.32.3
+
