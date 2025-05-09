@@ -216,121 +216,548 @@ def handle_story_download():
         return jsonify({"error": error or "Unknown error downloading story"}), 500
 
 
-def download_media(url):
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
+import threading
+
+# Add these at the top of your imports
+lock = threading.Lock()
+
+def setup_selenium_driver():
+    """Configure headless Chrome browser for Instagram scraping"""
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")  # New headless mode
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    
+    # Enable automatic downloading
+    prefs = {
+        "profile.default_content_setting_values.automatic_downloads": 1,
+        "download.prompt_for_download": False,
+    }
+    chrome_options.add_experimental_option("prefs", prefs)
+    
     try:
-        shortcode_match = re.search(r"(?:reel|reels|p|stories)/([a-zA-Z0-9-_]+)", url)
-        if not shortcode_match:
-            return None, "Invalid URL format - couldn't extract content ID"
+        # Use webdriver_manager to handle ChromeDriver automatically
+        driver = webdriver.Chrome(
+            service=webdriver.chrome.service.Service(ChromeDriverManager().install()),
+            options=chrome_options
+        )
+        return driver
+    except Exception as e:
+        logger.error(f"Failed to initialize Chrome driver: {str(e)}")
+        raise
 
-        shortcode = shortcode_match.group(1)
-        logger.info(f"Downloading media with shortcode {shortcode}")
+def extract_media_with_selenium(url):
+    """Selenium fallback for when Instaloader fails"""
+    driver = None
+    try:
+        driver = setup_selenium_driver()
+        driver.get(url)
+        
+        # Wait for main content to load
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "article[role='presentation']")))
+        
+        media_info = []
+        shortcode = get_shortcode_from_url(url)
+        
+        # Check for carousel
+        carousel = driver.find_elements(By.CSS_SELECTOR, "div[role='button'][aria-label*='carousel']")
+        if carousel:
+            items = driver.find_elements(By.CSS_SELECTOR, "div._aagv, div._aakz")
+            for idx, item in enumerate(items):
+                try:
+                    # Click to activate carousel item
+                    driver.execute_script("arguments[0].click();", item)
+                    time.sleep(1)  # Wait for content to load
+                    
+                    # Check for video
+                    video = item.find_elements(By.TAG_NAME, "video")
+                    if video:
+                        video_url = video[0].get_attribute("src")
+                        preview = item.find_element(By.TAG_NAME, "img").get_attribute("src")
+                        media_info.append({
+                            "url": video_url,
+                            "preview": preview,
+                            "ext": "mp4",
+                            "is_image": False,
+                            "title": f"ig_{shortcode}_{idx}",
+                            "format": "square"
+                        })
+                    else:
+                        # Handle image
+                        img = item.find_element(By.TAG_NAME, "img")
+                        img_url = img.get_attribute("src")
+                        media_info.append({
+                            "url": img_url,
+                            "preview": img_url,
+                            "ext": "jpg",
+                            "is_image": True,
+                            "title": f"ig_{shortcode}_{idx}",
+                            "format": "square"
+                        })
+                except:
+                    continue
+        else:
+            # Single post
+            video = driver.find_elements(By.TAG_NAME, "video")
+            if video:
+                video_url = video[0].get_attribute("src")
+                preview = driver.find_element(By.CSS_SELECTOR, "img[style*='object-fit']").get_attribute("src")
+                media_info.append({
+                    "url": video_url,
+                    "preview": preview,
+                    "ext": "mp4",
+                    "is_image": False,
+                    "title": f"ig_{shortcode}",
+                    "format": "square"
+                })
+            else:
+                img = driver.find_element(By.CSS_SELECTOR, "img[style*='object-fit']")
+                img_url = img.get_attribute("src")
+                media_info.append({
+                    "url": img_url,
+                    "preview": img_url,
+                    "ext": "jpg",
+                    "is_image": True,
+                    "title": f"ig_{shortcode}",
+                    "format": "square"
+                })
+        
+        return media_info if media_info else None, None
+        
+    except Exception as e:
+        logger.error(f"Selenium error: {str(e)}")
+        return None, f"Selenium failed: {str(e)}"
+    finally:
+        if driver:
+            driver.quit()
 
-        if "/stories/" in url:
-            return download_story(url)
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
 
+def download_reel_selenium(url):
+    """Most reliable current method using headless browser"""
+    driver = None
+    try:
+        driver = setup_selenium_driver()
+        driver.get(url)
+        
+        # Wait for video element and get highest quality source
+        video = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.XPATH, "//video[contains(@src,'cdninstagram.com')]"))
+        )
+        video_url = driver.execute_script("""
+            const videos = Array.from(document.querySelectorAll('video'));
+            const sources = videos.flatMap(v => 
+                Array.from(v.querySelectorAll('source')).map(s => s.src)
+            );
+            return sources.find(url => url.includes('cdninstagram.com')) || 
+                   (videos[0] ? videos[0].src : null);
+        """)
+        
+        if not video_url or 'blob:' in video_url:
+            raise Exception("No valid video URL found")
+
+        # Get preview image
+        preview = driver.find_element(By.CSS_SELECTOR, "img[style*='object-fit']")
+        preview_url = preview.get_attribute('src')
+        
+        return [{
+            "url": video_url,
+            "preview": preview_url,
+            "ext": "mp4",
+            "is_image": False,
+            "title": f"reel_{get_shortcode_from_url(url)}",
+            "format": "reel"
+        }], None
+        
+    except Exception as e:
+        logger.error(f"Selenium reel download failed: {str(e)}")
+        return None, f"Selenium failed: {str(e)}"
+    finally:
+        if driver:
+            driver.quit()
+            
+def download_reel_api_fallback(url):
+    """Alternative API methods when Selenium fails"""
+    shortcode = get_shortcode_from_url(url)
+    if not shortcode:
+        return None, "Invalid URL"
+    
+    # Method 1: GraphQL Query
+    try:
+        api_url = f"https://www.instagram.com/graphql/query/?query_hash=9f8827793ef34641b2fb195d4d41151c&variables=%7B%22shortcode%22%3A%22{shortcode}%22%7D"
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Referer": "https://www.instagram.com/",
+            "X-IG-App-ID": "936619743392459"
         }
-        session = requests.Session()
-        session.max_redirects = 5
-        response = session.get(url, headers=headers, timeout=15)
-        if response.status_code != 200:
-            return None, f"Failed to fetch post page, status code {response.status_code}"
-
-        html = response.text
-        soup = BeautifulSoup(html, "html.parser")
-
-        media_list = []
-
-        # 1) Try to extract JSON from window.__additionalDataLoaded
-        additional_data_match = re.search(
-            r"window\.__additionalDataLoaded\('feed',({.*?})\);", html, re.DOTALL
-        )
-        if additional_data_match:
-            try:
-                data = json.loads(additional_data_match.group(1))
-                media = data.get("items", [])[0]
-                if media:
-                    if media.get("media_type") == 1:  # Image
-                        media_list.append({
-                            "url": media.get("image_versions2", {}).get("candidates", [{}])[0].get("url"),
-                            "preview": media.get("image_versions2", {}).get("candidates", [{}])[0].get("url"),
-                            "ext": "jpg",
-                            "is_image": True,
-                            "title": f"insta_{shortcode}",
-                        })
-                    elif media.get("media_type") == 2:  # Video
-                        video_url = media.get("video_versions", [{}])[0].get("url")
-                        preview_url = media.get("image_versions2", {}).get("candidates", [{}])[0].get("url")
-                        media_list.append({
-                            "url": video_url,
-                            "preview": preview_url or video_url,
-                            "ext": "mp4",
-                            "is_image": False,
-                            "title": f"insta_{shortcode}",
-                        })
-                    if media_list:
-                        return media_list, None
-            except Exception:
-                pass
-
-        # 2) Try to extract JSON from <script type="application/ld+json">
-        ld_json_tag = soup.find("script", {"type": "application/ld+json"})
-        if ld_json_tag:
-            try:
-                ld_json = json.loads(ld_json_tag.string)
-                if isinstance(ld_json, dict):
-                    if ld_json.get("@type") == "VideoObject":
-                        media_list.append({
-                            "url": ld_json.get("contentUrl"),
-                            "preview": ld_json.get("thumbnailUrl"),
-                            "ext": "mp4",
-                            "is_image": False,
-                            "title": f"insta_{shortcode}",
-                        })
-                    elif ld_json.get("@type") == "ImageObject":
-                        media_list.append({
-                            "url": ld_json.get("contentUrl") or ld_json.get("url"),
-                            "preview": ld_json.get("contentUrl") or ld_json.get("url"),
-                            "ext": "jpg",
-                            "is_image": True,
-                            "title": f"insta_{shortcode}",
-                        })
-                    if media_list:
-                        return media_list, None
-            except Exception:
-                pass
-
-        # 3) Fallback: parse meta tags for video or image
-        video_meta = soup.find("meta", property="og:video")
-        if video_meta and video_meta.get("content"):
-            media_list.append({
-                "url": video_meta["content"],
-                "preview": soup.find("meta", property="og:image")["content"] if soup.find("meta", property="og:image") else "",
+        response = requests.get(api_url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            video_url = data['data']['shortcode_media']['video_url']
+            preview_url = data['data']['shortcode_media']['display_url']
+            return [{
+                "url": video_url,
+                "preview": preview_url,
                 "ext": "mp4",
                 "is_image": False,
-                "title": f"insta_{shortcode}",
-            })
-            return media_list, None
+                "title": f"reel_{shortcode}",
+                "format": "reel"
+            }], None
+    except:
+        pass
+    
+    # Method 2: Mobile API
+    try:
+        mobile_url = f"https://i.instagram.com/api/v1/media/{shortcode}/info/"
+        headers = {
+            "User-Agent": "Instagram 267.0.0.19.301 Android",
+            "X-IG-App-ID": "567067343352427"
+        }
+        response = requests.get(mobile_url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            video_url = data['items'][0]['video_versions'][0]['url']
+            preview_url = data['items'][0]['image_versions2']['candidates'][0]['url']
+            return [{
+                "url": video_url,
+                "preview": preview_url,
+                "ext": "mp4",
+                "is_image": False,
+                "title": f"reel_{shortcode}",
+                "format": "reel"
+            }], None
+    except:
+        pass
+    
+    return None, "All API methods failed"
 
-        image_meta = soup.find("meta", property="og:image")
-        if image_meta and image_meta.get("content"):
-            media_list.append({
-                "url": image_meta["content"],
-                "preview": image_meta["content"],
+def download_reel(url):
+    """Main reel download function with smart fallbacks"""
+    # Try Selenium first (most reliable)
+    result, error = download_reel_selenium(url)
+    if result:
+        return result, None
+    
+    # Try API fallbacks
+    result, error = download_reel_api_fallback(url)
+    if result:
+        return result, None
+    
+    # Ultimate fallback - requires authentication
+    try:
+        L = instaloader.Instaloader()
+        post = instaloader.Post.from_shortcode(L.context, get_shortcode_from_url(url))
+        if not post.is_video:
+            return None, "Not a video post"
+            
+        return [{
+            "url": post.video_url,
+            "preview": post.url,
+            "ext": "mp4",
+            "is_image": False,
+            "title": f"reel_{post.shortcode}",
+            "format": "reel"
+        }], None
+    except Exception as e:
+        logger.error(f"Instaloader failed: {str(e)}")
+        return None, "All methods failed (including authenticated)"
+
+
+def download_instagram_post(url):
+    """Handles all Instagram post types: single photos, videos, and carousels"""
+    shortcode = get_shortcode_from_url(url)
+    if not shortcode:
+        return None, "Invalid Instagram URL"
+
+    try:
+        # Initialize Instaloader
+        L = instaloader.Instaloader(
+            quiet=True,
+            download_pictures=False,
+            download_videos=False,
+            download_video_thumbnails=False
+        )
+        
+        # Get post object
+        post = instaloader.Post.from_shortcode(L.context, shortcode)
+        
+        media_info = []
+        
+        # Handle different post types
+        if post.typename == 'GraphImage':  # Single image
+            media_info.append({
+                "url": post.url,
+                "preview": post.url,
                 "ext": "jpg",
                 "is_image": True,
-                "title": f"insta_{shortcode}",
+                "title": f"ig_{shortcode}",
+                "format": "square" if post.aspect_ratio == 1 else "portrait"
             })
-            return media_list, None
-
-        return None, "Could not find media in page"
-
+            
+        elif post.typename == 'GraphVideo':  # Single video
+            media_info.append({
+                "url": post.video_url,
+                "preview": post.url,
+                "ext": "mp4",
+                "is_image": False,
+                "title": f"ig_{shortcode}",
+                "format": "square" if post.aspect_ratio == 1 else "portrait"
+            })
+            
+        elif post.typename == 'GraphSidecar':  # Carousel
+            for idx, node in enumerate(post.get_sidecar_nodes()):
+                if node.is_video:
+                    media_info.append({
+                        "url": node.video_url,
+                        "preview": node.display_url,
+                        "ext": "mp4",
+                        "is_image": False,
+                        "title": f"ig_{shortcode}_{idx}",
+                        "format": "square" if node.aspect_ratio == 1 else "portrait"
+                    })
+                else:
+                    media_info.append({
+                        "url": node.display_url,
+                        "preview": node.display_url,
+                        "ext": "jpg",
+                        "is_image": True,
+                        "title": f"ig_{shortcode}_{idx}",
+                        "format": "square" if node.aspect_ratio == 1 else "portrait"
+                    })
+        
+        if media_info:
+            return media_info, None
+        else:
+            return None, "No media found in post"
+            
     except Exception as e:
-        logger.error(f"Download error: {str(e)}")
-        return None, f"Error: {str(e)}"
+        logger.error(f"Instaloader error: {str(e)}")
+        return None, f"Error downloading post: {str(e)}"
+
+
+def download_media(url):
+    """Main download function that handles all content types"""
+    content_type = get_content_type(url)
+    
+    if content_type == "reel":
+        return download_reel(url)
+    elif content_type == "story":
+        return download_story(url)
+    elif content_type == "post":
+        # First try Instaloader
+        media_info, error = download_instagram_post(url)
+        if media_info:
+            return media_info, None
+            
+        # Fallback to Selenium
+        media_info, error = extract_media_with_selenium(url)
+        if media_info:
+            return media_info, None
+            
+        return None, "All download methods failed for this post"
+    else:
+        return None, "Unsupported content type"
+
+def extract_media_via_api(url):
+    """Try to extract media using Instagram's internal API"""
+    try:
+        shortcode = get_shortcode_from_url(url)
+        if not shortcode:
+            return None, "Could not extract shortcode"
+            
+        api_url = f"https://www.instagram.com/p/{shortcode}/?__a=1&__d=dis"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "application/json"
+        }
+        
+        session = requests.Session()
+        session.max_redirects = 3
+        response = session.get(api_url, headers=headers, timeout=15)
+        
+        if response.status_code == 200:
+            data = response.json()
+            media_info = []
+            
+            # Handle different post types
+            if 'items' in data:  # GraphQL response
+                item = data['items'][0]
+                if item['media_type'] == 1:  # Image
+                    media_info.append({
+                        "url": item['image_versions2']['candidates'][0]['url'],
+                        "preview": item['image_versions2']['candidates'][0]['url'],
+                        "ext": "jpg",
+                        "is_image": True,
+                        "title": f"insta_{shortcode}",
+                        "format": "square"
+                    })
+                elif item['media_type'] == 2:  # Video
+                    media_info.append({
+                        "url": item['video_versions'][0]['url'],
+                        "preview": item['image_versions2']['candidates'][0]['url'],
+                        "ext": "mp4",
+                        "is_image": False,
+                        "title": f"insta_{shortcode}",
+                        "format": "square"
+                    })
+                elif item['media_type'] == 8:  # Carousel
+                    for carousel_item in item['carousel_media']:
+                        if carousel_item['media_type'] == 1:  # Image
+                            media_info.append({
+                                "url": carousel_item['image_versions2']['candidates'][0]['url'],
+                                "preview": carousel_item['image_versions2']['candidates'][0]['url'],
+                                "ext": "jpg",
+                                "is_image": True,
+                                "title": f"insta_{shortcode}_{len(media_info)}",
+                                "format": "square"
+                            })
+                        elif carousel_item['media_type'] == 2:  # Video
+                            media_info.append({
+                                "url": carousel_item['video_versions'][0]['url'],
+                                "preview": carousel_item['image_versions2']['candidates'][0]['url'],
+                                "ext": "mp4",
+                                "is_image": False,
+                                "title": f"insta_{shortcode}_{len(media_info)}",
+                                "format": "square"
+                            })
+            elif 'graphql' in data:  # Alternative API response
+                media = data['graphql']['shortcode_media']
+                if media['__typename'] == 'GraphImage':
+                    media_info.append({
+                        "url": media['display_url'],
+                        "preview": media['display_url'],
+                        "ext": "jpg",
+                        "is_image": True,
+                        "title": f"insta_{shortcode}",
+                        "format": "square"
+                    })
+                elif media['__typename'] == 'GraphVideo':
+                    media_info.append({
+                        "url": media['video_url'],
+                        "preview": media['display_url'],
+                        "ext": "mp4",
+                        "is_image": False,
+                        "title": f"insta_{shortcode}",
+                        "format": "square"
+                    })
+                elif media['__typename'] == 'GraphSidecar':
+                    for edge in media['edge_sidecar_to_children']['edges']:
+                        node = edge['node']
+                        if node['__typename'] == 'GraphImage':
+                            media_info.append({
+                                "url": node['display_url'],
+                                "preview": node['display_url'],
+                                "ext": "jpg",
+                                "is_image": True,
+                                "title": f"insta_{shortcode}_{len(media_info)}",
+                                "format": "square"
+                            })
+                        elif node['__typename'] == 'GraphVideo':
+                            media_info.append({
+                                "url": node['video_url'],
+                                "preview": node['display_url'],
+                                "ext": "mp4",
+                                "is_image": False,
+                                "title": f"insta_{shortcode}_{len(media_info)}",
+                                "format": "square"
+                            })
+            
+            if media_info:
+                return media_info, None
+            
+        return None, "No media found in API response"
+    
+    except Exception as e:
+        logger.warning(f"API extraction failed: {str(e)}")
+        return None, str(e)
+
+def extract_media_from_html(url):
+    """Extract media from HTML meta tags and JSON scripts"""
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept-Language": "en-US,en;q=0.9"
+        }
+        
+        session = requests.Session()
+        session.max_redirects = 3
+        response = session.get(url, headers=headers, timeout=15)
+        
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            shortcode = get_shortcode_from_url(url)
+            media_info = []
+            
+            # Try to extract from JSON-LD
+            ld_json = soup.find('script', type='application/ld+json')
+            if ld_json:
+                try:
+                    data = json.loads(ld_json.string)
+                    if isinstance(data, dict):
+                        if data.get('@type') == 'VideoObject':
+                            media_info.append({
+                                "url": data.get('contentUrl'),
+                                "preview": data.get('thumbnailUrl'),
+                                "ext": "mp4",
+                                "is_image": False,
+                                "title": f"insta_{shortcode}",
+                                "format": "square"
+                            })
+                        elif data.get('@type') == 'ImageObject':
+                            media_info.append({
+                                "url": data.get('contentUrl') or data.get('url'),
+                                "preview": data.get('contentUrl') or data.get('url'),
+                                "ext": "jpg",
+                                "is_image": True,
+                                "title": f"insta_{shortcode}",
+                                "format": "square"
+                            })
+                except json.JSONDecodeError:
+                    pass
+            
+            # Try to extract from meta tags
+            if not media_info:
+                video_meta = soup.find('meta', property='og:video')
+                if video_meta and video_meta.get('content'):
+                    media_info.append({
+                        "url": video_meta['content'],
+                        "preview": soup.find('meta', property='og:image')['content'] if soup.find('meta', property='og:image') else "",
+                        "ext": "mp4",
+                        "is_image": False,
+                        "title": f"insta_{shortcode}",
+                        "format": "square"
+                    })
+                else:
+                    image_meta = soup.find('meta', property='og:image')
+                    if image_meta and image_meta.get('content'):
+                        media_info.append({
+                            "url": image_meta['content'],
+                            "preview": image_meta['content'],
+                            "ext": "jpg",
+                            "is_image": True,
+                            "title": f"insta_{shortcode}",
+                            "format": "square"
+                        })
+            
+            if media_info:
+                return media_info, None
+            
+        return None, "No media found in HTML"
+    
+    except Exception as e:
+        logger.warning(f"HTML extraction failed: {str(e)}")
+        return None, str(e)
 
 
 @app.route("/preview")
