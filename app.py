@@ -218,89 +218,119 @@ def handle_story_download():
 
 def download_media(url):
     try:
-        # Extract shortcode from URL
-        shortcode = re.search(r"(?:reel|reels|p|stories)/([a-zA-Z0-9-_]+)", url)
-        if not shortcode:
+        shortcode_match = re.search(r"(?:reel|reels|p|stories)/([a-zA-Z0-9-_]+)", url)
+        if not shortcode_match:
             return None, "Invalid URL format - couldn't extract content ID"
 
-        shortcode = shortcode.group(1)
+        shortcode = shortcode_match.group(1)
         logger.info(f"Downloading media with shortcode {shortcode}")
 
-        # Check if it's a story
-        is_story = "/stories/" in url
-
-        if is_story:
-            # Use our efficient story downloader
+        if "/stories/" in url:
             return download_story(url)
 
-        try:
-            # For regular posts/reels, try the standard instaloader method first
-            post = instaloader.Post.from_shortcode(L.context, shortcode)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Referer": "https://www.instagram.com/",
+        }
+        session = requests.Session()
+        session.max_redirects = 5
+        response = session.get(url, headers=headers, timeout=15)
+        if response.status_code != 200:
+            return None, f"Failed to fetch post page, status code {response.status_code}"
 
-            media_list = []
+        html = response.text
+        soup = BeautifulSoup(html, "html.parser")
 
-            if post.typename == "GraphImage":
-                media_list.append(
-                    {
-                        "url": post.url,
-                        "preview": post.url,
-                        "ext": "jpg",
-                        "is_image": True,
-                        "title": f"insta_{shortcode}",
-                    }
-                )
-            elif post.typename == "GraphVideo":
-                media_list.append(
-                    {
-                        "url": post.video_url,
-                        "preview": post.url,  # Thumbnail URL
-                        "ext": "mp4",
-                        "is_image": False,
-                        "title": f"insta_{shortcode}",
-                    }
-                )
-            elif post.typename == "GraphSidecar":
-                for node in post.get_sidecar_nodes():
-                    if node.is_video:
-                        media_list.append(
-                            {
-                                "url": node.video_url,
-                                "preview": node.display_url,
-                                "ext": "mp4",
-                                "is_image": False,
-                                "title": f"insta_{shortcode}_{len(media_list)}",
-                            }
-                        )
-                    else:
-                        media_list.append(
-                            {
-                                "url": node.display_url,
-                                "preview": node.display_url,
-                                "ext": "jpg",
-                                "is_image": True,
-                                "title": f"insta_{shortcode}_{len(media_list)}",
-                            }
-                        )
+        media_list = []
 
-            # Verify and fix preview URLs
-            for media in media_list:
-                if not media["preview"].startswith(("http:", "https:")):
-                    media["preview"] = f"https://instagram.com{media['preview']}"
+        # 1) Try to extract JSON from window.__additionalDataLoaded
+        additional_data_match = re.search(
+            r"window\.__additionalDataLoaded\('feed',({.*?})\);", html, re.DOTALL
+        )
+        if additional_data_match:
+            try:
+                data = json.loads(additional_data_match.group(1))
+                media = data.get("items", [])[0]
+                if media:
+                    if media.get("media_type") == 1:  # Image
+                        media_list.append({
+                            "url": media.get("image_versions2", {}).get("candidates", [{}])[0].get("url"),
+                            "preview": media.get("image_versions2", {}).get("candidates", [{}])[0].get("url"),
+                            "ext": "jpg",
+                            "is_image": True,
+                            "title": f"insta_{shortcode}",
+                        })
+                    elif media.get("media_type") == 2:  # Video
+                        video_url = media.get("video_versions", [{}])[0].get("url")
+                        preview_url = media.get("image_versions2", {}).get("candidates", [{}])[0].get("url")
+                        media_list.append({
+                            "url": video_url,
+                            "preview": preview_url or video_url,
+                            "ext": "mp4",
+                            "is_image": False,
+                            "title": f"insta_{shortcode}",
+                        })
+                    if media_list:
+                        return media_list, None
+            except Exception:
+                pass
 
-            if media_list:
-                return media_list, None
+        # 2) Try to extract JSON from <script type="application/ld+json">
+        ld_json_tag = soup.find("script", {"type": "application/ld+json"})
+        if ld_json_tag:
+            try:
+                ld_json = json.loads(ld_json_tag.string)
+                if isinstance(ld_json, dict):
+                    if ld_json.get("@type") == "VideoObject":
+                        media_list.append({
+                            "url": ld_json.get("contentUrl"),
+                            "preview": ld_json.get("thumbnailUrl"),
+                            "ext": "mp4",
+                            "is_image": False,
+                            "title": f"insta_{shortcode}",
+                        })
+                    elif ld_json.get("@type") == "ImageObject":
+                        media_list.append({
+                            "url": ld_json.get("contentUrl") or ld_json.get("url"),
+                            "preview": ld_json.get("contentUrl") or ld_json.get("url"),
+                            "ext": "jpg",
+                            "is_image": True,
+                            "title": f"insta_{shortcode}",
+                        })
+                    if media_list:
+                        return media_list, None
+            except Exception:
+                pass
 
-        except Exception as e:
-            logger.warning(f"Instaloader method failed: {str(e)}")
-            # Fall back to alternative method if regular download fails
+        # 3) Fallback: parse meta tags for video or image
+        video_meta = soup.find("meta", property="og:video")
+        if video_meta and video_meta.get("content"):
+            media_list.append({
+                "url": video_meta["content"],
+                "preview": soup.find("meta", property="og:image")["content"] if soup.find("meta", property="og:image") else "",
+                "ext": "mp4",
+                "is_image": False,
+                "title": f"insta_{shortcode}",
+            })
+            return media_list, None
 
-        # Fall back to alternative method
-        return fallback_download(url)
+        image_meta = soup.find("meta", property="og:image")
+        if image_meta and image_meta.get("content"):
+            media_list.append({
+                "url": image_meta["content"],
+                "preview": image_meta["content"],
+                "ext": "jpg",
+                "is_image": True,
+                "title": f"insta_{shortcode}",
+            })
+            return media_list, None
+
+        return None, "Could not find media in page"
 
     except Exception as e:
         logger.error(f"Download error: {str(e)}")
-        # Fall back to alternative method if regular download fails
-        return fallback_download(url)
+        return None, f"Error: {str(e)}"
 
 
 @app.route("/preview")
