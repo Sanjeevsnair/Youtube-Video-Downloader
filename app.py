@@ -185,6 +185,23 @@ def index():
     
     return render_template("index.html")
 
+@app.route("/terms-and-conditions", methods=["GET", "POST"])
+def TermsAndCondition():
+    return render_template("termsandcondition.html")
+
+@app.route("/privacy-policy", methods=["GET", "POST"])
+def privacy():
+    return render_template("privacy.html")
+
+@app.route("/contact", methods=["GET", "POST"])
+def contact():
+    return render_template("contact.html")
+
+@app.route("/about", methods=["GET", "POST"])
+def about():
+    return render_template("about.html")
+
+
 @app.route("/preview")
 def preview():
     """Proxy for preview images to avoid CORS issues"""
